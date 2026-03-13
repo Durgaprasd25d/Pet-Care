@@ -109,9 +109,9 @@ const Sidebar = ({ onLogout, user }) => {
           <>
             <SidebarItem icon={Package} label="Inventory" href="/inventory" active={location.pathname === '/inventory'} />
             <SidebarItem icon={ShoppingBag} label="Orders" href="/store-orders" active={location.pathname === '/store-orders'} />
-            <SidebarItem icon={Calendar} label="Service Bookings" href="/bookings" active={location.pathname === '/bookings'} />
-            <SidebarItem icon={Store} label="Store Profile" href="/store-profile" active={location.pathname === '/store-profile'} />
-            <SidebarItem icon={Dog} label="Customers" href="/pets" active={location.pathname === '/pets'} />
+            {/* <SidebarItem icon={Calendar} label="Service Bookings" href="/bookings" active={location.pathname === '/bookings'} /> */}
+            {/* <SidebarItem icon={Store} label="Store Profile" href="/store-profile" active={location.pathname === '/store-profile'} /> */}
+            {/* <SidebarItem icon={Dog} label="Customers" href="/pets" active={location.pathname === '/pets'} /> */}
           </>
         )}
         

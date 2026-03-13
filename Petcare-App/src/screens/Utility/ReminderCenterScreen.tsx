@@ -1,52 +1,72 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { Header } from '../../components/layout/Header';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../theme/theme';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { useHealthStore } from '../../store/useHealthStore';
+import { useAppStore } from '../../store/useAppStore';
 
 export const ReminderCenterScreen = ({ navigation }: any) => {
+  const { token } = useAppStore();
+  const { upcomingVaccinations, fetchUpcomingVaccinations, loading } = useHealthStore();
 
-  const REMINDERS = [
-    { id: 1, title: 'Annual Vaccination', pet: 'Max', date: 'Oct 15, 2023', icon: 'needle', color: COLORS.error },
-    { id: 2, title: 'Grooming Appointment', pet: 'Bella', date: 'Oct 20, 2023', icon: 'content-cut', color: COLORS.primary },
-    { id: 3, title: 'Heartworm Medication', pet: 'Max', date: 'Nov 01, 2023', icon: 'pill', color: COLORS.success },
-  ];
+  useEffect(() => {
+    if (token) {
+      fetchUpcomingVaccinations(token);
+    }
+  }, [token]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   return (
     <ScreenContainer>
-      <Header title="Reminders" onBackPress={() => navigation.goBack()} rightIcon="plus" onRightPress={() => {}} />
+      <Header title="Reminders" onBackPress={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         
-        <View style={styles.dateSelectorRow}>
-          <TouchableOpacity style={styles.dateActive}>
-            <Text style={styles.dateTextActive}>Upcoming</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.dateInactive}>
-            <Text style={styles.dateTextInactive}>Past</Text>
-          </TouchableOpacity>
-        </View>
-
-        {REMINDERS.map(rem => (
-          <View key={rem.id} style={styles.reminderCard}>
-            <View style={[styles.iconBox, { backgroundColor: rem.color + '20' }]}>
-              <MaterialDesignIcons name={rem.icon as any} size={18} color={COLORS.primary} />
-            </View>
-            <View style={styles.reminderInfo}>
-              <Text style={styles.reminderTitle}>{rem.title}</Text>
-              <Text style={styles.reminderSub}>For: {rem.pet} • {rem.date}</Text>
-            </View>
-            <TouchableOpacity style={styles.moreBtn}>
-              <MaterialDesignIcons name="dots-vertical" size={24} color={COLORS.textLight} />
-            </TouchableOpacity>
+        {loading ? (
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
+        ) : upcomingVaccinations.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialDesignIcons name="calendar-check-outline" size={64} color={COLORS.textLight + '40'} />
+            <Text style={styles.emptyText}>No upcoming reminders found.</Text>
           </View>
-        ))}
+        ) : (
+          upcomingVaccinations.map((rem: any) => (
+            <View key={rem.id} style={styles.reminderCard}>
+              <View style={[styles.iconBox, { backgroundColor: COLORS.primary + '15' }]}>
+                <MaterialDesignIcons name="needle" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.reminderInfo}>
+                <Text style={styles.reminderTitle}>{rem.vaccineType}</Text>
+                <Text style={styles.reminderSub}>
+                  For: {rem.petId?.name || 'Pet'} • {formatDate(rem.nextDueDate)}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate('VaccinationReminder')}
+              >
+                <MaterialDesignIcons name="chevron-right" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
 
-        <TouchableOpacity style={styles.createBanner}>
+        <TouchableOpacity 
+          style={styles.createBanner}
+          onPress={() => navigation.navigate('VaccinationReminder')}
+        >
           <MaterialDesignIcons name="bell-ring-outline" size={32} color={COLORS.surface} />
           <View style={{ marginLeft: SPACING.md }}>
-            <Text style={styles.bannerTitle}>Set a Custom Reminder</Text>
-            <Text style={styles.bannerSub}>Meds, walks, feeding...</Text>
+            <Text style={styles.bannerTitle}>Vaccination Schedule</Text>
+            <Text style={styles.bannerSub}>View full protection timeline</Text>
           </View>
         </TouchableOpacity>
 
@@ -59,34 +79,16 @@ const styles = StyleSheet.create({
   content: {
     padding: SPACING.md,
   },
-  dateSelectorRow: {
-    flexDirection: 'row',
-    marginBottom: SPACING.xl,
-    backgroundColor: COLORS.surface,
-    padding: 4,
-    borderRadius: RADIUS.lg,
-  },
-  dateActive: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.md,
+  emptyState: {
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+    marginBottom: 40,
   },
-  dateInactive: {
-    flex: 1,
-    paddingVertical: SPACING.sm,
-    alignItems: 'center',
-  },
-  dateTextActive: {
-    color: COLORS.surface,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  dateTextInactive: {
+  emptyText: {
+    marginTop: SPACING.md,
     color: COLORS.textLight,
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 16,
   },
   reminderCard: {
     flexDirection: 'row',
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textLight,
   },
-  moreBtn: {
+  actionBtn: {
     padding: SPACING.xs,
   },
   createBanner: {
