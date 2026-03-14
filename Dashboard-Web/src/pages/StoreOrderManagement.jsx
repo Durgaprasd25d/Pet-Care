@@ -107,7 +107,7 @@ const StoreOrderManagement = ({ user }) => {
                     {order.status.replace('_', ' ')}
                   </span>
                   <div className="h-8 w-px bg-slate-200 mx-2"></div>
-                  <p className="text-xl font-black text-primary">₹{order.totalPrice}</p>
+                  <p className="text-xl font-black text-primary">₹{Math.round(order.totalPrice)}</p>
                 </div>
               </div>
               
@@ -122,9 +122,9 @@ const StoreOrderManagement = ({ user }) => {
                         </div>
                         <div className="flex-1">
                           <p className="font-bold text-slate-800 text-sm">{item.name}</p>
-                          <p className="text-xs text-slate-400 font-medium">Qty: {item.quantity} × ₹{item.price}</p>
+                          <p className="text-xs text-slate-400 font-medium">Qty: {item.quantity} × ₹{Math.round(item.price)}</p>
                         </div>
-                        <p className="font-black text-slate-700 font-mono text-sm">₹{item.quantity * item.price}</p>
+                        <p className="font-black text-slate-700 font-mono text-sm">₹{Math.round(item.quantity * item.price)}</p>
                       </div>
                     ))}
                   </div>

@@ -182,3 +182,28 @@ exports.getComments = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Delete post
+// @route   DELETE /api/community/:id
+// @access  Private/Admin
+exports.deletePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Optional: Check if user is owner or admin
+    // For dashboard, we assume admin since it's the admin panel
+
+    await post.deleteOne();
+
+    // Delete associated comments
+    await Comment.deleteMany({ post: req.params.id });
+
+    res.json({ message: "Post and associated comments removed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

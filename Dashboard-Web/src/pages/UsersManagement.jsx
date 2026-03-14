@@ -17,6 +17,26 @@ const UsersManagement = () => {
     }
   };
 
+  const toggleVerification = async (id) => {
+    try {
+      const result = await dashboardService.updateUserVerification(id);
+      setUsers(users.map(u => u._id === id ? { ...u, isVerified: result.isVerified } : u));
+    } catch (err) {
+      console.error("Failed to toggle verification", err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        await dashboardService.deleteUser(id);
+        setUsers(users.filter(u => u._id !== id));
+      } catch (err) {
+        console.error("Failed to delete user", err);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -47,7 +67,7 @@ const UsersManagement = () => {
                 <th className="px-8 py-5">Profile Name</th>
                 <th className="px-8 py-5">Contact Node</th>
                 <th className="px-8 py-5">Geo Location</th>
-                <th className="px-8 py-5">Account Tier</th>
+                <th className="px-8 py-5">Verification</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
@@ -63,7 +83,9 @@ const UsersManagement = () => {
                       </div>
                       <div>
                         <p className="font-black text-slate-800 tracking-tight leading-tight">{user.name}</p>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Verified User</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                          {user.role || 'User'}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -86,12 +108,32 @@ const UsersManagement = () => {
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
-                      Standard
-                    </span>
+                    <button 
+                      onClick={() => toggleVerification(user._id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        user.isVerified 
+                          ? 'bg-emerald-100 text-emerald-600 border border-emerald-200' 
+                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                      }`}
+                    >
+                      {user.isVerified ? (
+                        <>
+                          <Shield size={12} />
+                          Verified
+                        </>
+                      ) : (
+                        <>
+                          <Shield size={12} className="opacity-50" />
+                          Unverified
+                        </>
+                      )}
+                    </button>
                   </td>
                   <td className="px-8 py-5 text-right">
-                    <button className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-white hover:shadow-lg rounded-xl transition-all border border-transparent hover:border-slate-100">
+                    <button 
+                      onClick={() => handleDelete(user._id)}
+                      className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-white hover:shadow-lg rounded-xl transition-all border border-transparent hover:border-slate-100"
+                    >
                       <Trash2 size={18} />
                     </button>
                   </td>

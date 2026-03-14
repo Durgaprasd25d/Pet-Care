@@ -95,7 +95,7 @@ const Sidebar = ({ onLogout, user }) => {
             <SidebarItem icon={Dog} label="Patients" href="/pets" active={location.pathname === '/pets'} />
             <SidebarItem icon={FileText} label="Prescriptions" href="/prescriptions" active={location.pathname === '/prescriptions'} />
             <SidebarItem icon={Stethoscope} label="Clinic Info" href="/clinic" active={location.pathname === '/clinic'} />
-            <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Urgent Care</div>
+            {/* <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Urgent Care</div> */}
             {/* <SidebarItem icon={AlertOctagon} label="Emergency SOS" href="/emergency" active={location.pathname === '/emergency'} /> */}
           </>
         )}
@@ -139,42 +139,40 @@ const Sidebar = ({ onLogout, user }) => {
 
 
 
-const Topbar = ({ user, onLogout }) => (
-  <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 fixed top-0 right-0 left-64 z-10">
-    <div className="relative w-96">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-      <input 
-        type="text" 
-        placeholder="Search everything..." 
-        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-      />
-    </div>
+const Topbar = ({ user, onLogout }) => {
+  const firstLetter = user?.name?.charAt(0).toUpperCase() || 'U';
 
-    <div className="flex items-center gap-4">
-      <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-full relative">
-        <Bell size={20} />
-        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-      </button>
-      <div className="h-8 w-px bg-slate-200 mx-2"></div>
-      <div className="flex items-center gap-3">
-        <div className="text-right hidden sm:block">
-          <p className="text-sm font-semibold text-slate-900">{user?.name || 'User'}</p>
-          <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">{user?.role || 'admin'}</p>
+  return (
+    <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-end px-8 fixed top-0 right-0 left-64 z-10 transition-all">
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{user?.name || 'User'}</p>
+            <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{user?.role || 'admin'}</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shadow-sm">
+            {user?.avatar ? (
+              <img src={user.avatar} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-lg font-black text-primary">{firstLetter}</span>
+            )}
+          </div>
         </div>
-        <div className="w-10 h-10 rounded-full bg-slate-200 border border-slate-300 overflow-hidden">
-          {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : null}
-        </div>
+
+        <div className="h-8 w-px bg-slate-100 mx-2"></div>
+
         <button 
           onClick={onLogout}
-          className="ml-2 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all group"
+          className="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-red-500 hover:bg-rose-50 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest group"
           title="Sign Out"
         >
-          <LogOut size={20} className="group-hover:scale-110 transition-transform" />
+          <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
+          <span>Sign Out</span>
         </button>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const DashboardHome = () => {
   const [stats, setStats] = useState({ totalPets: 0, appointments: 0, activeUsers: 856, newReports: 12 });
@@ -214,7 +212,7 @@ const DashboardHome = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
         {[
           { label: 'Total Pets', value: stats.totalPets, icon: Dog, color: 'text-blue-600', bg: 'bg-blue-600/10' },
-          { label: 'Appointments', value: stats.appointments, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-600/10' },
+          // { label: 'Appointments', value: stats.appointments, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-600/10' },
           { label: 'Active Users', value: stats.activeUsers, icon: UserIcon, color: 'text-emerald-600', bg: 'bg-emerald-600/10' },
           { label: 'New Reports', value: stats.newReports, icon: Bell, color: 'text-rose-600', bg: 'bg-rose-600/10' },
         ].map((stat, i) => (
@@ -310,10 +308,12 @@ const App = () => {
   };
 
   const handleLogout = () => {
-    dashboardService.logout();
-    setIsAuthenticated(false);
-    setUser(null);
-    navigate('/login');
+    if (window.confirm("Are you sure you want to sign out from PetCare?")) {
+      dashboardService.logout();
+      setIsAuthenticated(false);
+      setUser(null);
+      navigate('/login');
+    }
   };
 
   if (!isAuthenticated) {

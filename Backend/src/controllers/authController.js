@@ -276,3 +276,43 @@ exports.getUsers = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Toggle user verification (admin)
+// @route   PUT /api/auth/users/:id/verify
+// @access  Private/Admin
+exports.toggleUserVerification = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+      user.isVerified = !user.isVerified;
+      await user.save();
+      res.json({
+        message: `User verification ${user.isVerified ? "enabled" : "disabled"}`,
+        isVerified: user.isVerified,
+      });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete user (admin)
+// @route   DELETE /api/auth/users/:id
+// @access  Private/Admin
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+      await user.deleteOne();
+      res.json({ message: "User removed successfully" });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

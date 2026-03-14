@@ -6,6 +6,7 @@ const {
   likePost,
   addComment,
   getComments,
+  deletePost,
 } = require("../controllers/communityController");
 const { protect } = require("../middleware/authMiddleware");
 const multer = require("multer");
@@ -19,5 +20,7 @@ router
 router.post("/:id/like", protect, likePost);
 
 router.route("/:id/comments").get(getComments).post(protect, addComment);
+
+router.delete("/:id", protect, deletePost);
 
 module.exports = router;

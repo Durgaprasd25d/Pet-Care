@@ -92,8 +92,15 @@ export const dashboardService = {
 
   // Users
   getUsers: async () => {
-    const response = await api.get("/auth/users"); // Assuming this exists or needs to be added
+    const response = await api.get("/auth/users");
     return response.data;
+  },
+  updateUserVerification: async (id) => {
+    const response = await api.put(`/auth/users/${id}/verify`);
+    return response.data;
+  },
+  deleteUser: async (id) => {
+    await api.delete(`/auth/users/${id}`);
   },
 
   // Adoption
@@ -204,6 +211,18 @@ export const dashboardService = {
   },
   updateEmergencyStatus: async (id, status) => {
     const response = await api.put(`/emergency/${id}`, { status });
+    return response.data;
+  },
+  getVetStats: async () => {
+    const response = await api.get("/admin/vet-stats");
+    return response.data;
+  },
+  getNgoStats: async () => {
+    const response = await api.get("/admin/ngo-stats");
+    return response.data;
+  },
+  getStoreStats: async () => {
+    const response = await api.get("/admin/store-stats");
     return response.data;
   },
 };

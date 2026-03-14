@@ -114,7 +114,11 @@ exports.getPets = async (req, res) => {
 exports.getPetById = async (req, res) => {
   try {
     const pet = await Pet.findById(req.params.id);
-    if (pet && pet.ownerId.toString() === req.user._id.toString()) {
+    if (
+      pet &&
+      (pet.ownerId.toString() === req.user._id.toString() ||
+        req.user.role === "admin")
+    ) {
       res.json(pet);
     } else {
       res.status(404).json({ message: "Pet not found" });
@@ -171,7 +175,11 @@ exports.updatePet = async (req, res) => {
   try {
     const pet = await Pet.findById(req.params.id);
 
-    if (pet && pet.ownerId.toString() === req.user._id.toString()) {
+    if (
+      pet &&
+      (pet.ownerId.toString() === req.user._id.toString() ||
+        req.user.role === "admin")
+    ) {
       pet.name = req.body.name ?? pet.name;
       pet.type = req.body.type ?? pet.type;
       pet.breed = req.body.breed ?? pet.breed;
@@ -211,7 +219,11 @@ exports.deletePet = async (req, res) => {
   try {
     const pet = await Pet.findById(req.params.id);
 
-    if (pet && pet.ownerId.toString() === req.user._id.toString()) {
+    if (
+      pet &&
+      (pet.ownerId.toString() === req.user._id.toString() ||
+        req.user.role === "admin")
+    ) {
       await Pet.findByIdAndDelete(req.params.id);
       res.json({ message: "Pet removed" });
     } else {
