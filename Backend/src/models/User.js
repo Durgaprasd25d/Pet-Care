@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema(
     phone: String,
     location: String,
     avatar: String,
+    fcmToken: String,
     role: {
       type: String,
       enum: ["owner", "vet", "ngo", "store", "admin"],

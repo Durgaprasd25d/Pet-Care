@@ -2,6 +2,7 @@ const Post = require("../models/Post");
 const Comment = require("../models/Comment");
 const Notification = require("../models/Notification");
 const cloudinary = require("../config/cloudinaryConfig");
+const NotificationService = require("../services/notificationService");
 
 // @desc    Create new community post
 // @route   POST /api/posts
@@ -42,6 +43,13 @@ exports.createPost = async (req, res) => {
       "user",
       "name avatar",
     );
+
+    // Send push notification globally
+    NotificationService.sendToAllUsers({
+      title: 'New Community Post! 🐾',
+      body: `${populatedPost.user.name} just posted: "${content.substring(0, 30)}..."`,
+      data: { type: 'new_post', postId: post._id.toString() }
+    });
 
     // Emit real-time event
     const io = req.app.get("io");
@@ -96,6 +104,13 @@ exports.likePost = async (req, res) => {
           post: post._id,
           content: `${req.user.name} liked your post.`,
         });
+
+        // Push notification
+        NotificationService.sendToUser(post.user.toString(), {
+          title: 'New Like! ❤️',
+          body: `${req.user.name} liked your post.`,
+          data: { type: 'like', postId: post._id.toString() }
+        });
       }
     }
 
@@ -145,6 +160,13 @@ exports.addComment = async (req, res) => {
         type: "comment",
         post: post._id,
         content: `${req.user.name} commented on your post.`,
+      });
+
+      // Push notification
+      NotificationService.sendToUser(post.user.toString(), {
+        title: 'New Comment! 💬',
+        body: `${req.user.name} commented: "${req.body.text}"`,
+        data: { type: 'comment', postId: post._id.toString() }
       });
     }
 

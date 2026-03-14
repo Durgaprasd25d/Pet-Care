@@ -11,6 +11,9 @@ connectDB();
 
 const app = express();
 
+// Start background workers
+require("./services/cronService").startCronJobs();
+
 // Body parser
 app.use(express.json());
 

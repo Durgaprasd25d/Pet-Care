@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const NotificationService = require("../services/notificationService");
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -44,6 +45,13 @@ exports.createOrder = async (req, res) => {
           $inc: { stock: -item.quantity },
         });
       }
+
+      // Notify User
+      NotificationService.sendToUser(req.user._id.toString(), {
+        title: 'Order Placed! 📦',
+        body: `Your order for $${totalPrice} has been successfully placed.`,
+        data: { type: 'order', orderId: createdOrder._id.toString() }
+      });
 
       res.status(201).json(createdOrder);
     } catch (error) {
@@ -95,6 +103,14 @@ exports.updateOrderStatus = async (req, res) => {
     if (order) {
       order.status = req.body.status || order.status;
       const updatedOrder = await order.save();
+
+      // Notify User
+      NotificationService.sendToUser(order.userId.toString(), {
+        title: 'Order Update 🚚',
+        body: `Your order status is now: ${updatedOrder.status}`,
+        data: { type: 'order_update', orderId: updatedOrder._id.toString() }
+      });
+
       res.json(updatedOrder);
     } else {
       res.status(404).json({ message: "Order not found" });

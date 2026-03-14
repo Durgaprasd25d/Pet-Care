@@ -447,16 +447,38 @@ export const dataService = {
   },
 
   // AI Chat
-  chatWithAI: async (message: string, history: any[], token: string) => {
+  chatWithAI: async (message: string, token: string) => {
     const response = await fetch(`${API_URL}/ai/chat`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ message, history })
+      body: JSON.stringify({ message })
     });
     return response.json();
+  },
+
+  chatWithAIStream: async (message: string, token: string, onChunk: (text: string) => void) => {
+    // Note: React Native's default fetch doesn't support streaming well.
+    // We'll implement this using a standard fetch but the UI will handle the response.
+    // For true streaming in RN, consider adding 'react-native-fetch-api'
+    const response = await fetch(`${API_URL}/ai/chat/stream`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ message })
+    });
+
+    if (!response.ok) throw new Error('Streaming failed');
+    
+    // Fallback for non-streaming environments: 
+    // If response.body is not available, we just return the full response.
+    // In a production app, you'd use a polyfill or specific RN streaming library.
+    const text = await response.text();
+    onChunk(text); // Placeholder for streaming logic
   },
   
   // Vaccinations

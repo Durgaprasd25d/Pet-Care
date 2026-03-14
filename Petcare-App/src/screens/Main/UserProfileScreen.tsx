@@ -151,7 +151,10 @@ export const UserProfileScreen = ({ navigation }: any) => {
                   <TouchableOpacity
                     key={pet.id}
                     style={styles.petChip}
-                    onPress={() => navigation.navigate('PetProfile', { petId: pet.id })}
+                    onPress={() => navigation.navigate('MainTabs', { 
+                      screen: 'PetsTab', 
+                      params: { screen: 'PetProfile', params: { petId: pet.id } } 
+                    })}
                   >
                     <Avatar
                       source={pet.image ? { uri: pet.image } : undefined}
@@ -162,7 +165,10 @@ export const UserProfileScreen = ({ navigation }: any) => {
                 ))}
                 <TouchableOpacity
                   style={[styles.petChip, styles.addPetChip]}
-                  onPress={() => navigation.navigate('AddPet')}
+                  onPress={() => navigation.navigate('MainTabs', { 
+                    screen: 'PetsTab', 
+                    params: { screen: 'AddPet' } 
+                  })}
                 >
                   <View style={styles.addPetIcon}>
                     <MaterialDesignIcons name="plus" size={24} color={COLORS.primary} />
@@ -194,7 +200,10 @@ export const UserProfileScreen = ({ navigation }: any) => {
               <View style={styles.divider} /> */}
               {renderMenuItem('shield-lock-outline', 'Privacy & Security', () => navigation.navigate('PrivacySecurity'), '#10b981')}
               <View style={styles.divider} />
-              {renderMenuItem('package-variant-closed', 'My Orders', () => navigation.navigate('StoreTab', { screen: 'MyOrders' }), '#f43f5e')}
+              {renderMenuItem('package-variant-closed', 'My Orders', () => navigation.navigate('MainTabs', { 
+                screen: 'StoreTab', 
+                params: { screen: 'MyOrders' } 
+              }), '#f43f5e')}
               {/* <View style={styles.divider} />
               {renderMenuItem('wallet-outline', 'Payments & Subscriptions', () => { }, '#3b82f6')} */}
             </View>

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import Markdown from 'react-native-markdown-display';
 import {
   View,
   Text,
@@ -25,6 +26,7 @@ import { Header } from '../../components/layout/Header';
 import { COLORS, SPACING, SHADOWS } from '../../theme/theme';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
 import { useAppStore } from '../../store/useAppStore';
+import { usePetStore } from '../../store/usePetStore';
 import { dataService } from '../../services/dataService';
 
 interface Message {
@@ -34,13 +36,43 @@ interface Message {
   timestamp: Date;
 }
 
-const QUICK_SUGGESTIONS = [
-  "🐶 My pet's weight?",
-  "📅 Next appointment?",
-  "💉 Vaccine status?",
-  "🍎 Diet tips?",
-  "🚑 Emergency help"
-];
+const markdownStyles: any = {
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#334155', // Slate 700 for better readability
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#0F172A', // Slate 900 for emphasis
+  },
+  em: {
+    fontStyle: 'italic',
+    color: '#475569',
+  },
+  bullet_list: {
+    marginVertical: 4,
+  },
+  list_item: {
+    marginBottom: 4,
+  },
+  bullet_list_icon: {
+    color: COLORS.primary,
+    fontSize: 14,
+    marginRight: 6,
+  },
+  paragraph: {
+    marginTop: 0,
+    marginBottom: 8,
+  },
+  heading1: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+};
 
 const MessageBubble = React.memo(({ item }: { item: Message }) => {
   const isUser = item.sender === 'user';
@@ -54,8 +86,8 @@ const MessageBubble = React.memo(({ item }: { item: Message }) => {
       ]}
     >
       {!isUser && (
-        <View style={styles.aiAvatar}>
-          <MaterialDesignIcons name="robot" size={18} color="#fff" />
+        <View style={[styles.aiAvatar, { backgroundColor: '#8B5CF6' }]}>
+          <MaterialDesignIcons name="paw" size={16} color="#fff" />
         </View>
       )}
 
@@ -66,14 +98,17 @@ const MessageBubble = React.memo(({ item }: { item: Message }) => {
           !isUser && styles.aiBubbleShadow,
         ]}
       >
-        <Text
-          style={[
-            styles.messageText,
-            isUser ? styles.userText : styles.aiText,
-          ]}
-        >
-          {item.text}
-        </Text>
+        {isUser ? (
+          <Text style={[styles.messageText, styles.userText]}>
+            {item.text}
+          </Text>
+        ) : (
+          <View style={styles.markdownContainer}>
+            <Markdown style={markdownStyles}>
+              {item.text.replace(/\\\*/g, '*').trim()}
+            </Markdown>
+          </View>
+        )}
 
         <Text
           style={[
@@ -93,8 +128,28 @@ const MessageBubble = React.memo(({ item }: { item: Message }) => {
 
 export const PetAIChatScreen = ({ navigation }: any) => {
   const { token } = useAppStore();
+  const { pets, fetchPets } = usePetStore();
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (token) {
+      fetchPets(token);
+    }
+  }, [token]);
+
+  const dynamicSuggestions = useMemo(() => {
+    const firstPetName = pets[0]?.name || "my pet";
+    const breed = pets[0]?.breed || "breed";
+    
+    return [
+      `🐶 ${firstPetName}'s weight?`,
+      `💊 ${firstPetName}'s vaccine status?`,
+      `📅 Next appointment for ${firstPetName}?`,
+      `🍎 Best diet for a ${breed}?`,
+      "🚑 Emergency help"
+    ];
+  }, [pets]);
 
   const typingOpacity = useSharedValue(0.4);
 
@@ -155,12 +210,7 @@ export const PetAIChatScreen = ({ navigation }: any) => {
     }, 100);
 
     try {
-      const history = messages.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }],
-      }));
-
-      const response = await dataService.chatWithAI(text, history, token);
+      const response = await dataService.chatWithAI(text, token);
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -259,7 +309,7 @@ export const PetAIChatScreen = ({ navigation }: any) => {
               contentContainerStyle={styles.suggestionsContainer}
               keyboardShouldPersistTaps="handled"
             >
-              {QUICK_SUGGESTIONS.map((suggestion, idx) => (
+              {dynamicSuggestions.map((suggestion, idx) => (
                 <TouchableOpacity
                   key={idx}
                   style={styles.suggestionChip}
@@ -356,24 +406,35 @@ const styles = StyleSheet.create({
   },
 
   bubble: {
-    padding: 14,
-    borderRadius: 20,
-    maxWidth: '80%',
+    padding: 12,
+    borderRadius: 18,
+    maxWidth: '85%',
   },
 
   userBubble: {
     backgroundColor: COLORS.primary,
     borderBottomRightRadius: 4,
+    ...SHADOWS.small,
   },
 
   aiBubble: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#F8FAFC',
     borderBottomLeftRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    ...SHADOWS.small,
+  },
+
+  markdownContainer: {
+    width: '100%',
   },
 
   aiBubbleShadow: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
+    ...SHADOWS.small,
   },
 
   messageText: {

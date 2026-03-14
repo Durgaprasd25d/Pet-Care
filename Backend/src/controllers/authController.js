@@ -139,7 +139,7 @@ exports.resendOTP = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 exports.loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, fcmToken } = req.body;
 
   try {
     const user = await User.findOne({ email });
@@ -152,11 +152,18 @@ exports.loginUser = async (req, res) => {
           email: user.email,
         });
       }
+
+      if (fcmToken && user.fcmToken !== fcmToken) {
+        user.fcmToken = fcmToken;
+        await user.save();
+      }
+
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        fcmToken: user.fcmToken,
         token: generateToken(user._id),
       });
     } else {
@@ -203,6 +210,10 @@ exports.updateUserProfile = async (req, res) => {
       user.name = req.body.name || user.name;
       user.phone = req.body.phone || user.phone;
       user.location = req.body.location || user.location;
+      
+      if (req.body.fcmToken) {
+        user.fcmToken = req.body.fcmToken;
+      }
 
       // Handle avatar upload if present
       if (req.file) {
