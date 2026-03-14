@@ -61,6 +61,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "$25 - $50",
     },
+    coordinates: {
+      latitude: Number,
+      longitude: Number,
+    },
   },
 
   {

@@ -74,11 +74,11 @@ export const HomeDashboardScreen = ({ navigation }: any) => {
             </View>
             <Text style={styles.actionText}>Find Vet</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ReminderCenter')}>
-            <View style={[styles.iconContainer, { backgroundColor: '#f0fdfa' }]}>
-              <MaterialDesignIcons name="pill" size={28} color={COLORS.secondary} />
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AdoptionHome')}>
+            <View style={[styles.iconContainer, { backgroundColor: '#fdf2f8' }]}>
+              <MaterialDesignIcons name="heart-pulse" size={28} color="#db2777" />
             </View>
-            <Text style={styles.actionText}>Meds</Text>
+            <Text style={styles.actionText}>Adopt</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('EmergencySOS')}>
             <View style={[styles.iconContainer, { backgroundColor: '#fef2f2' }]}>
@@ -86,12 +86,18 @@ export const HomeDashboardScreen = ({ navigation }: any) => {
             </View>
             <Text style={styles.actionText}>SOS</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AboutApp')}>
-             <View style={[styles.iconContainer, { backgroundColor: '#fff7ed' }]}>
-              <MaterialDesignIcons name="help-circle-outline" size={28} color={COLORS.accent} />
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('LostFoundHome')}>
+            <View style={[styles.iconContainer, { backgroundColor: '#fff7ed' }]}>
+              <MaterialDesignIcons name="map-search-outline" size={28} color={COLORS.accent} />
+            </View>
+            <Text style={styles.actionText}>Lost & Found</Text>
+          </TouchableOpacity>
+          {/* <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('AboutApp')}>
+             <View style={[styles.iconContainer, { backgroundColor: '#f0f9ff' }]}>
+              <MaterialDesignIcons name="help-circle-outline" size={28} color="#0284c7" />
             </View>
             <Text style={styles.actionText}>Help</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <TouchableOpacity 
@@ -180,6 +186,28 @@ export const HomeDashboardScreen = ({ navigation }: any) => {
           )}
         </View>
       </ScrollView>
+
+      {/* Floating Buttons */}
+      <TouchableOpacity 
+        style={styles.floatingAI} 
+        onPress={() => navigation.navigate('PetAIChat')}
+        activeOpacity={0.8}
+      >
+        <MaterialDesignIcons name="robot" size={28} color="#fff" />
+        <Text style={styles.floatingAIText}>AI Assistant</Text>
+      </TouchableOpacity>
+
+      {/* Persistent SOS Floating Button */}
+      {/* 
+      <TouchableOpacity 
+        style={styles.floatingSOS} 
+        onPress={() => navigation.navigate('EmergencySOS')}
+        activeOpacity={0.8}
+      >
+        <MaterialDesignIcons name="alert-octagon" size={32} color="#fff" />
+        <Text style={styles.floatingSOSText}>SOS</Text>
+      </TouchableOpacity>
+      */}
     </ScreenContainer>
   );
 };
@@ -392,5 +420,88 @@ const styles = StyleSheet.create({
     color: '#d97706',
     fontSize: 13,
     fontWeight: '800',
+  },
+  adoptionBanner: {
+    backgroundColor: '#ec4899', // Pinkish for adoption
+    borderRadius: RADIUS.xl,
+    padding: SPACING.lg,
+    marginBottom: SPACING.xl,
+    ...SHADOWS.medium,
+    overflow: 'hidden',
+  },
+  adoptionContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  adoptionText: {
+    flex: 1,
+    marginRight: SPACING.md,
+  },
+  adoptionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  adoptionDesc: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 18,
+  },
+  heartIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  /*
+  floatingSOS: {
+    position: 'absolute',
+    bottom: SPACING.lg,
+    right: SPACING.lg,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.large,
+    shadowColor: COLORS.error,
+    elevation: 8,
+    zIndex: 100,
+  },
+  floatingSOSText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: -2,
+  },
+  */
+  floatingAI: {
+    position: 'absolute',
+    bottom: SPACING.lg,
+    right: SPACING.lg,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.large,
+    shadowColor: COLORS.primary,
+    elevation: 8,
+    zIndex: 100,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  floatingAIText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: -2,
+    textAlign: 'center',
   },
 });

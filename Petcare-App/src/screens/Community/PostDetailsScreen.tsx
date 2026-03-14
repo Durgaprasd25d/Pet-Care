@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, Image, TouchableOpacity, TextInput, Share } from 'react-native';
-import { Portal, Modal } from 'react-native-paper';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import { CommentBottomSheet } from '../../components/ui/CommentBottomSheet';
+import LinearGradient from 'react-native-linear-gradient';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { Header } from '../../components/layout/Header';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../theme/theme';
@@ -12,12 +14,26 @@ import { useCommunityStore } from '../../store/useCommunityStore';
 import { useAppStore } from '../../store/useAppStore';
 
 export const PostDetailsScreen = ({ route, navigation }: any) => {
+
   const { postId } = route.params;
   const { posts, comments, fetchComments, addComment } = useCommunityStore();
   const { token, user } = useAppStore();
-  const [commentText, setCommentText] = useState('');
-  const [isLiked, setIsLiked] = useState(false);
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
+  
+  const scale = useSharedValue(1);
+  const pulseScale = useSharedValue(1);
+  const pulseOpacity = useSharedValue(0);
+
+  const animatedHeartStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const animatedPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    opacity: pulseOpacity.value,
+    position: 'absolute',
+    zIndex: -1,
+  }));
   
   const post = posts.find(p => p.id === postId);
 
@@ -30,20 +46,28 @@ export const PostDetailsScreen = ({ route, navigation }: any) => {
     };
   }, [postId, post, token]);
 
-  const handleSend = async () => {
-    if (commentText.trim() && token) {
-      await addComment(postId, commentText, token);
-      setCommentText('');
-    }
-  };
-
   const handleLike = async () => {
     if (token) {
+      const isPostLiked = user?.id && post?.likedBy?.includes(user.id);
+      
+      scale.value = withSequence(
+        withSpring(1.4, { damping: 5, stiffness: 150 }),
+        withSpring(1, { damping: 10, stiffness: 100 })
+      );
+
+      if (!isPostLiked) {
+        pulseScale.value = 1;
+        pulseOpacity.value = 0.5;
+        pulseScale.value = withTiming(2.5, { duration: 400 });
+        pulseOpacity.value = withTiming(0, { duration: 400 });
+      }
+
       await useCommunityStore.getState().likePost(postId, token);
     }
   };
 
-  const isPostLiked = user?.id && post?.likedBy?.includes(user.id);
+  const userId = user?.id || (user as any)?._id;
+  const isPostLiked = userId && post?.likedBy?.includes(userId);
 
 
   if (!post) {
@@ -57,8 +81,6 @@ export const PostDetailsScreen = ({ route, navigation }: any) => {
     );
   }
 
-  // Formatting date nicely
-  const formattedDate = new Date(post.timestamp || 0).toLocaleDateString() + ' ' + new Date(post.timestamp || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
     <ScreenContainer>
@@ -67,14 +89,14 @@ export const PostDetailsScreen = ({ route, navigation }: any) => {
         
         <View style={styles.postCard}>
           <View style={styles.authorRow}>
-            <TouchableOpacity onPress={() => navigation.navigate('UserCommunityProfile', { userId: post.userId })}>
+            <TouchableOpacity onPress={() => navigation.navigate('UserCommunityProfile', { userId: post.user?.id })}>
               <Image source={{ uri: post.userAvatar }} style={styles.avatar} />
             </TouchableOpacity>
             <View style={styles.authorInfo}>
-              <TouchableOpacity onPress={() => navigation.navigate('UserCommunityProfile', { userId: post.userId })}>
+              <TouchableOpacity onPress={() => navigation.navigate('UserCommunityProfile', { userId: post.user?.id })}>
                 <Text style={styles.authorName}>{post.userName}</Text>
               </TouchableOpacity>
-              <Text style={styles.timeText}>{formattedDate}</Text>
+              <Text style={styles.timeText}>{post.timeAgo}</Text>
             </View>
             {post.location && (
               <View style={styles.locationBadge}>
@@ -98,13 +120,20 @@ export const PostDetailsScreen = ({ route, navigation }: any) => {
           )}
 
           <View style={styles.statsRow}>
-            <TouchableOpacity style={styles.actionBtn} onPress={handleLike}>
-              <MaterialDesignIcons 
-                name={isPostLiked ? "heart" : "heart-outline"} 
-                size={24} 
-                color={isPostLiked ? COLORS.accent : COLORS.textLight} 
-              />
-              <Text style={[styles.actionText, isPostLiked && { color: COLORS.accent }]}>{post.likes} Like</Text>
+            <TouchableOpacity style={styles.actionBtn} onPress={handleLike} activeOpacity={0.8}>
+              <Animated.View style={animatedHeartStyle}>
+                {isPostLiked ? (
+                  <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <Animated.View style={animatedPulseStyle}>
+                      <View style={[styles.gradientHeart, { backgroundColor: '#FF3B30', opacity: 0.3 }]} />
+                    </Animated.View>
+                    <MaterialDesignIcons name="heart" size={24} color="#FF3B30" />
+                  </View>
+                ) : (
+                  <MaterialDesignIcons name="heart-outline" size={24} color={COLORS.textLight} />
+                )}
+              </Animated.View>
+              <Text style={[styles.actionText, isPostLiked && { color: '#FF3B30' }]}>{post.likes} Like</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={() => setIsCommentsVisible(true)}>
               <MaterialDesignIcons name="comment-outline" size={24} color={COLORS.textLight} />
@@ -124,53 +153,11 @@ export const PostDetailsScreen = ({ route, navigation }: any) => {
           </View>
         </View>
 
-        <Portal>
-          <Modal
-            visible={isCommentsVisible}
-            onDismiss={() => setIsCommentsVisible(false)}
-            contentContainerStyle={styles.modalContainer}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Comments</Text>
-              <TouchableOpacity onPress={() => setIsCommentsVisible(false)}>
-                <MaterialDesignIcons name="close" size={24} color={COLORS.text} />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.modalCommentsList}>
-              {comments.map((c: any) => (
-                <View key={c._id || c.id} style={styles.commentItem}>
-                  <Image source={{ uri: c.user?.avatar || 'https://via.placeholder.com/150' }} style={styles.commentAvatar} />
-                  <View style={styles.commentContent}>
-                    <View style={styles.commentHeader}>
-                      <Text style={styles.commentAuthor}>{c.user?.name || 'Anonymous'}</Text>
-                      <Text style={styles.commentTime}>{new Date(c.createdAt).toLocaleDateString()}</Text>
-                    </View>
-                    <Text style={styles.commentText}>{c.text}</Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-
-            <View style={styles.modalInputContainer}>
-              <TextInput 
-                style={styles.modalInput} 
-                placeholder="Write a comment..." 
-                value={commentText}
-                onChangeText={setCommentText}
-                autoFocus
-              />
-              <TouchableOpacity 
-                style={styles.modalSendBtn} 
-                onPress={handleSend}
-                disabled={!commentText.trim()}
-              >
-                <MaterialDesignIcons name="send" size={24} color={commentText.trim() ? COLORS.primary : COLORS.border} />
-              </TouchableOpacity>
-            </View>
-          </Modal>
-        </Portal>
-
+        <CommentBottomSheet 
+          visible={isCommentsVisible} 
+          onClose={() => setIsCommentsVisible(false)} 
+          postId={postId} 
+        />
       </ScrollView>
     </ScreenContainer>
   );
@@ -191,6 +178,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     marginBottom: SPACING.md,
+  },
+  gradientHeart: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   authorRow: {
     flexDirection: 'row',
@@ -285,114 +279,5 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     fontWeight: '500',
     marginLeft: 6,
-  },
-  modalContainer: {
-    backgroundColor: COLORS.surface,
-    padding: SPACING.lg,
-    margin: SPACING.lg,
-    borderRadius: RADIUS.xl,
-    maxHeight: '80%',
-    ...SHADOWS.medium,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border + '50',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  modalCommentsList: {
-    flexGrow: 0,
-    maxHeight: 400,
-  },
-  modalInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border + '50',
-  },
-  modalInput: {
-    flex: 1,
-    height: 45,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    paddingHorizontal: SPACING.md,
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  modalSendBtn: {
-    marginLeft: SPACING.sm,
-    padding: SPACING.xs,
-  },
-  commentsHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginHorizontal: SPACING.md,
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.md,
-  },
-  commentItem: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  commentAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: SPACING.sm,
-  },
-  commentContent: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    padding: SPACING.sm,
-    borderRadius: RADIUS.lg,
-    ...SHADOWS.small,
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  commentAuthor: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  commentTime: {
-    fontSize: 12,
-    color: COLORS.textLight,
-  },
-  commentText: {
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  commentInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: COLORS.background,
-    borderRadius: 20,
-    paddingHorizontal: SPACING.md,
-    fontSize: 14,
-  },
-  sendBtn: {
-    padding: SPACING.sm,
   },
 });

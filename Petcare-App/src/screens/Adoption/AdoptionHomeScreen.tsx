@@ -1,16 +1,44 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, Text, ImageBackground, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Text, ImageBackground, TouchableOpacity, Image, FlatList } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
 import { COLORS, SPACING, RADIUS, SHADOWS, wp, hp } from '../../theme/theme';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { useAppStore } from '../../store/useAppStore';
+import { useAdoptionStore } from '../../store/useAdoptionStore';
 
 export const AdoptionHomeScreen = ({ navigation }: any) => {
+  const { adoptions, fetchAdoptions, myRequests, fetchMyRequests } = useAdoptionStore();
+  const { user, token } = useAppStore();
+
+  useEffect(() => {
+    fetchAdoptions();
+    if (token) fetchMyRequests(token);
+  }, []);
+
+  const renderRecentPet = ({ item }: { item: any }) => (
+    <TouchableOpacity 
+      style={styles.recentPetCard} 
+      onPress={() => navigation.navigate('AdoptionDetails', { adoptionId: item.id })}
+    >
+      <Image source={{ uri: item.image }} style={styles.recentPetImg} />
+      <View style={styles.recentPetInfo}>
+        <Text style={styles.recentPetName}>{item.name}</Text>
+        <Text style={styles.recentPetBreed}>{item.breed}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <ScreenContainer>
-      <Header title="Adoption" onBackPress={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Header 
+        title="Pet Adoption" 
+        onBackPress={() => navigation.goBack()} 
+        rightIcon="heart-outline"
+        onRightPress={() => navigation.navigate('AdoptionStatus')}
+      />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         <ImageBackground 
           source={{ uri: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=800' }} 
@@ -20,72 +48,78 @@ export const AdoptionHomeScreen = ({ navigation }: any) => {
           <View style={styles.heroOverlay}>
             <Text style={styles.heroTitle}>Find Your New Best Friend</Text>
             <Text style={styles.heroSubtitle}>Give a rescue pet a forever home today.</Text>
-            <Button 
-              title="Browse Pets" 
+            {/* <Button 
+              title="Browse All" 
               onPress={() => navigation.navigate('AdoptionList')} 
               style={styles.heroBtn}
-              textStyle={{ color: COLORS.text }}
-            />
+              textStyle={{ color: COLORS.primary, fontWeight: 'bold' }}
+            /> */}
           </View>
         </ImageBackground>
 
-        <Text style={styles.sectionTitle}>Categories</Text>
+        {/* <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+        </View>
         <View style={styles.categoryRow}>
-          <TouchableOpacity style={styles.categoryCard} onPress={() => navigation.navigate('AdoptionList', { filter: 'Dogs' })}>
-            <View style={[styles.catIconBox, { backgroundColor: '#fef3c7' }]}>
-              <MaterialDesignIcons name="dog" size={32} color="#d97706" />
-            </View>
-            <Text style={styles.catText}>Dogs</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.categoryCard} onPress={() => navigation.navigate('AdoptionList', { filter: 'Cats' })}>
-            <View style={[styles.catIconBox, { backgroundColor: '#f3e8ff' }]}>
-              <MaterialDesignIcons name="cat" size={32} color="#9333ea" />
-            </View>
-            <Text style={styles.catText}>Cats</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.categoryCard} onPress={() => navigation.navigate('AdoptionList', { filter: 'Birds' })}>
-            <View style={[styles.catIconBox, { backgroundColor: '#dcfce7' }]}>
-              <MaterialDesignIcons name="bird" size={32} color="#16a34a" />
-            </View>
-            <Text style={styles.catText}>Birds</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.categoryCard} onPress={() => navigation.navigate('AdoptionList', { filter: 'Other' })}>
-            <View style={[styles.catIconBox, { backgroundColor: '#e0f2fe' }]}>
-              <MaterialDesignIcons name="paw" size={32} color="#0284c7" />
-            </View>
-            <Text style={styles.catText}>Other</Text>
-          </TouchableOpacity>
-        </View>
+          {[
+            { id: 'Dog', icon: 'dog', bg: '#fef3c7', color: '#d97706' },
+            { id: 'Cat', icon: 'cat', bg: '#f3e8ff', color: '#9333ea' },
+            { id: 'Bird', icon: 'bird', bg: '#dcfce7', color: '#16a34a' },
+            { id: 'Other', icon: 'paw', bg: '#e0f2fe', color: '#0284c7' }
+          ].map((cat) => (
+            <TouchableOpacity 
+              key={cat.id} 
+              style={styles.categoryCard} 
+              onPress={() => navigation.navigate('AdoptionList', { filter: cat.id })}
+            >
+              <View style={[styles.catIconBox, { backgroundColor: cat.bg }]}>
+                <MaterialDesignIcons name={cat.icon as any} size={28} color={cat.color} />
+              </View>
+              <Text style={styles.catText}>{cat.id}</Text>
+            </TouchableOpacity>
+          ))}
+        </View> */}
 
-        <Text style={styles.sectionTitle}>How it works</Text>
-        <View style={styles.stepCard}>
-          <View style={styles.stepIcon}>
-            <Text style={styles.stepNum}>1</Text>
-          </View>
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Find a Pet</Text>
-            <Text style={styles.stepDesc}>Browse our extensive list of rescue animals looking for a home.</Text>
-          </View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recently Added</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AdoptionList')}>
+            <Text style={styles.seeAll}>See All</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.stepCard}>
-          <View style={styles.stepIcon}>
-            <Text style={styles.stepNum}>2</Text>
-          </View>
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Submit Application</Text>
-            <Text style={styles.stepDesc}>Fill out a simple form to let the shelter know you're interested.</Text>
-          </View>
-        </View>
-        <View style={styles.stepCard}>
-          <View style={styles.stepIcon}>
-            <Text style={styles.stepNum}>3</Text>
-          </View>
-          <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Meet & Greet</Text>
-            <Text style={styles.stepDesc}>Schedule a visit to meet your potential new family member.</Text>
-          </View>
-        </View>
+        <FlatList 
+          data={adoptions.slice(0, 5)}
+          renderItem={renderRecentPet}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.recentList}
+        />
 
+        {myRequests.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Applications</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('AdoptionStatus')}>
+                <Text style={styles.seeAll}>View Status</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity 
+              style={styles.statusBanner}
+              onPress={() => navigation.navigate('AdoptionStatus')}
+            >
+              <View style={styles.statusIcon}>
+                <MaterialDesignIcons name="file-document-outline" size={24} color={COLORS.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.statusTitle}>Check your application status</Text>
+                <Text style={styles.statusSubtitle}>You have {myRequests.length} active application{myRequests.length > 1 ? 's' : ''}</Text>
+              </View>
+              <MaterialDesignIcons name="chevron-right" size={24} color={COLORS.textLight} />
+            </TouchableOpacity>
+          </>
+        )}
+
+        <View style={{ height: 20 }} />
       </ScrollView>
     </ScreenContainer>
   );
@@ -94,100 +128,135 @@ export const AdoptionHomeScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   scrollContent: {
     padding: SPACING.md,
-    paddingBottom: SPACING.xl,
   },
   heroBanner: {
     width: '100%',
-    height: hp(25),
-    marginBottom: SPACING.xl,
+    height: 180,
+    marginBottom: SPACING.lg,
     justifyContent: 'flex-end',
+    overflow: 'hidden',
+    ...SHADOWS.medium,
   },
   heroOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     padding: SPACING.lg,
     borderBottomLeftRadius: RADIUS.xl,
     borderBottomRightRadius: RADIUS.xl,
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 4,
   },
   heroSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#eee',
     marginBottom: SPACING.md,
   },
   heroBtn: {
     alignSelf: 'flex-start',
     backgroundColor: '#fff',
-    paddingHorizontal: SPACING.xl,
-    height: 40,
+    paddingHorizontal: SPACING.lg,
+    height: 38,
+    borderRadius: RADIUS.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.md,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Outfit-Bold',
     color: COLORS.text,
-    marginBottom: SPACING.md,
+  },
+  seeAll: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
   categoryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.lg,
+    marginTop: SPACING.xs,
   },
   categoryCard: {
     alignItems: 'center',
     width: '23%',
   },
   catIconBox: {
-    width: wp(14),
-    height: wp(14),
-    borderRadius: wp(7),
+    width: 54,
+    height: 54,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: 8,
     ...SHADOWS.small,
   },
   catText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
     color: COLORS.text,
   },
-  stepCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.lg,
-    marginBottom: SPACING.md,
-    ...SHADOWS.small,
-    alignItems: 'center',
+  recentList: {
+    paddingVertical: SPACING.sm,
   },
-  stepIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary + '20',
+  recentPetCard: {
+    width: 130,
+    marginRight: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    ...SHADOWS.small,
+    overflow: 'hidden',
+  },
+  recentPetImg: {
+    width: '100%',
+    height: 100,
+    backgroundColor: COLORS.background,
+  },
+  recentPetInfo: {
+    padding: 8,
+  },
+  recentPetName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  recentPetBreed: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary + '10',
+    padding: 16,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+    marginTop: SPACING.xs,
+  },
+  statusIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: SPACING.md,
+    marginRight: 12,
+    ...SHADOWS.small,
   },
-  stepNum: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  stepContent: {
-    flex: 1,
-  },
-  stepTitle: {
-    fontSize: 16,
+  statusTitle: {
+    fontSize: 15,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 2,
   },
-  stepDesc: {
-    fontSize: 14,
+  statusSubtitle: {
+    fontSize: 13,
     color: COLORS.textLight,
   },
 });

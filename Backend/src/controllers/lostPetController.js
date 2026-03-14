@@ -1,11 +1,13 @@
 const LostPet = require("../models/LostPet");
+const Post = require("../models/Post");
+const cloudinary = require("../config/cloudinaryConfig");
 
 // @desc    Report lost/found pet
 // @route   POST /api/lostpets
 // @access  Private
 exports.reportLostPet = async (req, res) => {
   try {
-    const {
+    let {
       type,
       petName,
       breed,
@@ -17,6 +19,31 @@ exports.reportLostPet = async (req, res) => {
       contactInfo,
     } = req.body;
 
+    // Handle contactInfo if it comes as a string from FormData
+    if (typeof contactInfo === "string") {
+      try {
+        contactInfo = JSON.parse(contactInfo);
+      } catch (e) {
+        console.error("Failed to parse contactInfo:", e);
+      }
+    }
+
+    let imageUrl = image || "";
+
+    // Handle image upload to Cloudinary if a file was uploaded via multer
+    if (req.file) {
+      imageUrl = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "auto", folder: "lost_found_pets" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result.secure_url);
+          },
+        );
+        uploadStream.end(req.file.buffer);
+      });
+    }
+
     const lostPet = await LostPet.create({
       type,
       petName,
@@ -25,13 +52,30 @@ exports.reportLostPet = async (req, res) => {
       lastSeenLocation,
       lastSeenDate,
       description,
-      image,
+      image: imageUrl,
       reportedBy: req.user._id,
       contactInfo,
     });
 
+    // Automatically create a community post
+    try {
+      const typeText = type === "lost" ? "LOST" : "FOUND";
+      const petText = petName ? `${petName}` : "a pet";
+      await Post.create({
+        user: req.user._id,
+        content: `🚨 ${typeText} PET ALERT! 🚨\n\nI ${type === "lost" ? "lost" : "found"} ${petText} at ${lastSeenLocation} on ${new Date(lastSeenDate).toLocaleDateString()}.\n\nDescription: ${description}`,
+        images: [imageUrl],
+        category: "lost_found",
+        lostPetId: lostPet._id,
+        location: lastSeenLocation,
+      });
+    } catch (postError) {
+      console.error("Failed to create community post for lost pet:", postError);
+    }
+
     res.status(201).json(lostPet);
   } catch (error) {
+    console.error("Error in reportLostPet:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -85,7 +129,8 @@ exports.updateLostPetStatus = async (req, res) => {
 
     if (
       lostPet.reportedBy.toString() !== req.user._id.toString() &&
-      req.user.role !== "admin"
+      req.user.role !== "admin" &&
+      req.user.role !== "ngo"
     ) {
       return res.status(401).json({ message: "Not authorized" });
     }

@@ -5,32 +5,48 @@ import { Button } from '../../components/ui/Button';
 import { COLORS, SPACING, RADIUS } from '../../theme/theme';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
 
-export const ApplicationSuccessScreen = ({ navigation }: any) => {
+export const ApplicationSuccessScreen = ({ route, navigation }: any) => {
+  const { petName } = route.params;
+
   return (
     <ScreenContainer>
       <View style={styles.container}>
-        
-        <View style={styles.iconContainer}>
-          <MaterialDesignIcons name="heart" size={80} color={COLORS.error} />
+        <View style={styles.iconBox}>
+          <MaterialDesignIcons name="heart-circle" size={80} color={COLORS.primary} />
         </View>
         
-        <Text style={styles.title}>Application Submitted!</Text>
-        
+        <Text style={styles.title}>Application Sent!</Text>
         <Text style={styles.message}>
-          Thank you for your interest in adopting. The shelter has received your application and will contact you within 2-3 business days.
+          Your request to adopt <Text style={{fontWeight: 'bold', color: COLORS.text}}>{petName}</Text> has been submitted to the shelter.
         </Text>
-
+        
         <View style={styles.card}>
-          <MaterialDesignIcons name="email-check-outline" size={24} color={COLORS.primary} style={{ marginRight: SPACING.sm }} />
-          <Text style={styles.cardText}>A confirmation email has been sent to your registered email address.</Text>
+          <Text style={styles.cardTitle}>What's Next?</Text>
+          <View style={styles.step}>
+            <MaterialDesignIcons name="eye-outline" size={20} color={COLORS.primary} />
+            <Text style={styles.stepText}>The shelter will review your application.</Text>
+          </View>
+          <View style={styles.step}>
+            <MaterialDesignIcons name="bell-outline" size={20} color={COLORS.primary} />
+            <Text style={styles.stepText}>You will receive a notification of their decision.</Text>
+          </View>
+          <View style={styles.step}>
+            <MaterialDesignIcons name="calendar-check" size={20} color={COLORS.primary} />
+            <Text style={styles.stepText}>If approved, you can schedule a meeting.</Text>
+          </View>
         </View>
 
         <Button 
-          title="Back to Home" 
-          onPress={() => navigation.navigate('MainTabs', { screen: 'HomeTab' })} 
-          style={styles.button}
+          title="Track Application" 
+          onPress={() => navigation.navigate('AdoptionStatus')} 
+          style={styles.btn}
         />
-        
+        <Button 
+          title="Back to Home" 
+          onPress={() => navigation.navigate('AdoptionHome')} 
+          variant="outline"
+          style={styles.outlineBtn}
+        />
       </View>
     </ScreenContainer>
   );
@@ -39,49 +55,66 @@ export const ApplicationSuccessScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: SPACING.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.xl,
   },
-  iconContainer: {
+  iconBox: {
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: COLORS.error + '15',
+    backgroundColor: COLORS.primary + '10',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: 30,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: 'Outfit-Bold',
     color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 12,
   },
   message: {
     fontSize: 16,
     color: COLORS.textLight,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: SPACING.xl,
+    marginBottom: 40,
   },
   card: {
+    width: '100%',
+    backgroundColor: COLORS.surface,
+    padding: 24,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 40,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  step: {
     flexDirection: 'row',
-    backgroundColor: COLORS.primary + '10',
-    padding: SPACING.lg,
-    borderRadius: RADIUS.lg,
     alignItems: 'center',
-    marginBottom: SPACING.xxl,
-    width: '100%',
+    gap: 12,
+    marginBottom: 12,
   },
-  cardText: {
-    flex: 1,
+  stepText: {
     fontSize: 14,
-    color: COLORS.primary,
-    lineHeight: 20,
+    color: COLORS.textLight,
+    flex: 1,
   },
-  button: {
+  btn: {
     width: '100%',
+    borderRadius: RADIUS.lg,
+    marginBottom: 12,
   },
+  outlineBtn: {
+    width: '100%',
+    borderRadius: RADIUS.lg,
+    borderColor: COLORS.primary,
+  }
 });

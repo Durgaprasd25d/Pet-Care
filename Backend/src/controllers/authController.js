@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
+const cloudinary = require("../config/cloudinaryConfig");
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -202,7 +203,27 @@ exports.updateUserProfile = async (req, res) => {
       user.name = req.body.name || user.name;
       user.phone = req.body.phone || user.phone;
       user.location = req.body.location || user.location;
-      user.avatar = req.body.avatar || user.avatar;
+
+      // Handle avatar upload if present
+      if (req.file) {
+        try {
+          const imageUrl = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              { resource_type: "auto", folder: "user_avatars" },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result.secure_url);
+              },
+            );
+            uploadStream.end(req.file.buffer);
+          });
+          user.avatar = imageUrl;
+        } catch (error) {
+          console.error("Avatar upload failed:", error);
+        }
+      } else {
+        user.avatar = req.body.avatar || user.avatar;
+      }
 
       // Vet specific fields
       if (user.role === "vet") {

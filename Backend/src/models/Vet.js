@@ -13,6 +13,8 @@ const vetSchema = new mongoose.Schema(
     image: String,
     availability: [String],
     price: String,
+    latitude: { type: Number },
+    longitude: { type: Number },
   },
   {
     timestamps: true,

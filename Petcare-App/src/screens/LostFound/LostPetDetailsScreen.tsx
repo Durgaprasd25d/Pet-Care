@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Text, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Image, TouchableOpacity, Linking, Alert, ActivityIndicator } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
@@ -7,19 +7,54 @@ import { Badge } from '../../components/ui/Badge';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../theme/theme';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
 import { useLostPetStore } from '../../store/useLostPetStore';
+import { dataService } from '../../services/dataService';
 
 export const LostPetDetailsScreen = ({ route, navigation }: any) => {
   const { itemId } = route.params;
-  const { reports } = useLostPetStore();
-  const item = reports.find(r => r.id === itemId);
+  const [item, setItem] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        const details = await dataService.getLostPetById(itemId);
+        setItem(details);
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Error', 'Failed to load report details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetails();
+  }, [itemId]);
+
+  const handleCall = () => {
+    const phone = item.contactInfo?.phone;
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
+    } else {
+      Alert.alert('Not Available', 'No contact number provided.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <ScreenContainer>
+        <Header title="Lost Pet Details" onBackPress={() => navigation.goBack()} />
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   if (!item) {
     return (
       <ScreenContainer>
-        <Header title="Lost Pet Details" onBackPress={() => navigation.goBack()} />
-        <View style={styles.loading}>
-          <Text>Loading...</Text>
+        <Header title="Details" onBackPress={() => navigation.goBack()} />
+        <View style={styles.centered}>
+          <Text>Report not found.</Text>
         </View>
       </ScreenContainer>
     );
@@ -34,9 +69,6 @@ export const LostPetDetailsScreen = ({ route, navigation }: any) => {
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
               <MaterialDesignIcons name="arrow-left" size={24} color={COLORS.surface} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.shareBtn}>
-              <MaterialDesignIcons name="share-variant" size={24} color={COLORS.text} />
-            </TouchableOpacity>
           </View>
           <View style={styles.badgeContainer}>
             <Badge label="LOST PET" variant="error" />
@@ -44,42 +76,40 @@ export const LostPetDetailsScreen = ({ route, navigation }: any) => {
         </View>
 
         <View style={styles.contentContainer}>
-          <View style={styles.titleRow}>
-            <Text style={styles.name}>{item.petName || 'Unknown Pet'}</Text>
-          </View>
-          <Text style={styles.subtext}>{item.breed} • {item.type}</Text>
+          <Text style={styles.name}>{item.petName || 'Missing Pet'}</Text>
+          <Text style={styles.subtext}>{item.breed} • {item.color}</Text>
 
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <MaterialDesignIcons name="map-marker" size={20} color={COLORS.primary} style={styles.infoIcon} />
+              <MaterialDesignIcons name="map-marker" size={20} color={COLORS.error} style={styles.infoIcon} />
               <View>
                 <Text style={styles.infoLabel}>Last Seen Location</Text>
-                <Text style={styles.infoValue}>{item.location}</Text>
+                <Text style={styles.infoValue}>{item.lastSeenLocation}</Text>
               </View>
             </View>
             <View style={styles.divider} />
             <View style={styles.infoRow}>
-              <MaterialDesignIcons name="calendar-clock" size={20} color={COLORS.primary} style={styles.infoIcon} />
+              <MaterialDesignIcons name="calendar-clock" size={20} color={COLORS.error} style={styles.infoIcon} />
               <View>
                 <Text style={styles.infoLabel}>Date Lost</Text>
-                <Text style={styles.infoValue}>{item.date}</Text>
+                <Text style={styles.infoValue}>{new Date(item.lastSeenDate).toLocaleDateString()}</Text>
               </View>
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.sectionTitle}>Distinctive Features</Text>
           <Text style={styles.description}>{item.description}</Text>
 
-          <Text style={styles.sectionTitle}>Contact Informant</Text>
+          <Text style={styles.sectionTitle}>Reported By</Text>
           <View style={styles.contactCard}>
             <View style={styles.avatar}>
               <MaterialDesignIcons name="account" size={24} color={COLORS.surface} />
             </View>
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactName}>{item.reportedBy}</Text>
+            <View style={styles.contactDetails}>
+              <Text style={styles.contactName}>{item.reportedBy?.name || 'Anonymous'}</Text>
               <Text style={styles.contactSub}>Pet Owner / Reporter</Text>
             </View>
-            <TouchableOpacity style={styles.callBtn}>
+            <TouchableOpacity style={styles.callBtn} onPress={handleCall}>
               <MaterialDesignIcons name="phone" size={20} color={COLORS.surface} />
             </TouchableOpacity>
           </View>
@@ -89,8 +119,9 @@ export const LostPetDetailsScreen = ({ route, navigation }: any) => {
       <View style={styles.footer}>
         <Button 
           title="I Have Found This Pet" 
-          onPress={() => {}} 
+          onPress={handleCall} 
           color={COLORS.success}
+          icon="heart"
         />
       </View>
     </ScreenContainer>
@@ -98,18 +129,18 @@ export const LostPetDetailsScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  loading: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollContent: {
-    paddingBottom: SPACING.xxl,
+    paddingBottom: 40,
   },
   imageContainer: {
     width: '100%',
     height: 350,
-    position: 'relative',
+    backgroundColor: COLORS.border,
   },
   image: {
     width: '100%',
@@ -119,9 +150,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 40,
     left: SPACING.md,
-    right: SPACING.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   backBtn: {
     width: 40,
@@ -131,51 +159,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  shareBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.small,
-  },
   badgeContainer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 20,
     left: SPACING.md,
   },
   contentContainer: {
-    flex: 1,
     backgroundColor: COLORS.background,
-    marginTop: -20,
+    marginTop: -30,
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
-    padding: SPACING.lg,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    padding: SPACING.xl,
   },
   name: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
   subtext: {
     fontSize: 16,
     color: COLORS.textLight,
     marginTop: 4,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.xl,
+    fontWeight: '600',
   },
   infoCard: {
     backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.border + '50',
     marginBottom: SPACING.xl,
+    ...SHADOWS.small,
   },
   infoRow: {
     flexDirection: 'row',
@@ -184,8 +200,8 @@ const styles = StyleSheet.create({
   infoIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary + '15',
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.error + '10',
     textAlign: 'center',
     lineHeight: 40,
     marginRight: SPACING.md,
@@ -193,22 +209,25 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 12,
     color: COLORS.textLight,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: COLORS.text,
+    marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.border + '50',
     marginVertical: SPACING.md,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: COLORS.text,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   description: {
     fontSize: 15,
@@ -221,8 +240,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     padding: SPACING.md,
-    borderRadius: RADIUS.lg,
-    ...SHADOWS.small,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border + '50',
   },
   avatar: {
     width: 50,
@@ -233,29 +253,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: SPACING.md,
   },
-  contactInfo: {
+  contactDetails: {
     flex: 1,
   },
   contactName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '800',
     color: COLORS.text,
   },
   contactSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textLight,
+    fontWeight: '600',
   },
   callBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: COLORS.success,
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.small,
   },
   footer: {
-    padding: SPACING.md,
+    padding: SPACING.lg,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,

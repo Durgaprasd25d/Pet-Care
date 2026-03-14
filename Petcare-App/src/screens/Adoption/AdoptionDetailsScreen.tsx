@@ -1,24 +1,48 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Text, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Image, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
-import { COLORS, SPACING, RADIUS, SHADOWS } from '../../theme/theme';
+import { COLORS, SPACING, RADIUS, SHADOWS, wp, hp } from '../../theme/theme';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
-import { useAdoptionStore } from '../../store/useAdoptionStore';
+import { dataService } from '../../services/dataService';
 
 export const AdoptionDetailsScreen = ({ route, navigation }: any) => {
   const { adoptionId } = route.params;
-  const { adoptions } = useAdoptionStore();
-  const pet = adoptions.find(a => a.id === adoptionId);
+  const [pet, setPet] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        const data = await dataService.getAdoptionPetById(adoptionId);
+        setPet(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [adoptionId]);
+
+  if (loading) {
+    return (
+      <ScreenContainer>
+        <Header title="Loading..." onBackPress={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   if (!pet) {
     return (
       <ScreenContainer>
-        <Header title="Adoption Details" onBackPress={() => navigation.goBack()} />
-        <View style={styles.loading}>
-          <Text>Loading...</Text>
+        <Header title="Error" onBackPress={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <Text>Pet details not found.</Text>
         </View>
       </ScreenContainer>
     );
@@ -26,66 +50,88 @@ export const AdoptionDetailsScreen = ({ route, navigation }: any) => {
 
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: pet.image }} style={styles.image} />
-          <View style={styles.headerControls}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-              <MaterialDesignIcons name="arrow-left" size={24} color={COLORS.surface} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.favBtn}>
-              <MaterialDesignIcons name="heart-outline" size={24} color={COLORS.error} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.contentContainer}>
-          <View style={styles.titleRow}>
-            <Text style={styles.name}>{pet.name}</Text>
-            <MaterialDesignIcons name={pet.gender === 'Male' ? 'gender-male' : 'gender-female'} size={28} color={pet.gender === 'Male' ? '#3b82f6' : '#ec4899'} />
-          </View>
-          
-          <View style={styles.locationRow}>
-            <MaterialDesignIcons name="map-marker" size={16} color={COLORS.primary} />
-            <Text style={styles.location}>{pet.shelter}</Text>
-          </View>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Age</Text>
-              <Text style={styles.statValue}>{pet.age}</Text>
+      <Header 
+        title={pet.name} 
+        onBackPress={() => navigation.goBack()} 
+        transparent 
+      />
+      
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        <Image source={{ uri: pet.image }} style={styles.headerImg} />
+        
+        <View style={styles.content}>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.name}>{pet.name}</Text>
+              <Text style={styles.breed}>{pet.breed} • {pet.age}</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Breed</Text>
-              <Text style={styles.statValue}>{pet.breed}</Text>
-            </View>
-            <View style={[styles.statBox, { borderRightWidth: 0 }]}>
-              <Text style={styles.statLabel}>Weight</Text>
-              <Text style={styles.statValue}>{pet.weight}</Text>
+            <View style={styles.genderBadge}>
+              <MaterialDesignIcons 
+                name={pet.gender === 'Male' ? 'gender-male' : 'gender-female'} 
+                size={20} 
+                color={pet.gender === 'Male' ? '#3b82f6' : '#ec4899'} 
+              />
+              <Text style={[styles.genderText, { color: pet.gender === 'Male' ? '#3b82f6' : '#ec4899' }]}>{pet.gender}</Text>
             </View>
           </View>
 
-          <View style={styles.shelterCard}>
-            <View style={styles.shelterIcon}>
-              <MaterialDesignIcons name="home-heart" size={24} color={COLORS.primary} />
+          <View style={styles.infoGrid}>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>Age</Text>
+              <Text style={styles.infoValue}>{pet.age}</Text>
             </View>
-            <View style={styles.shelterInfo}>
-              <Text style={styles.shelterName}>{pet.shelter}</Text>
-              <Text style={styles.shelterSub}>Verified Shelter</Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>Weight</Text>
+              <Text style={styles.infoValue}>Healthy</Text>
             </View>
-            <MaterialDesignIcons name="message-text" size={24} color={COLORS.primary} />
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>Type</Text>
+              <Text style={styles.infoValue}>{pet.type}</Text>
+            </View>
           </View>
 
           <Text style={styles.sectionTitle}>About {pet.name}</Text>
-          <Text style={styles.aboutText}>{pet.description}</Text>
+          <Text style={styles.description}>{pet.description}</Text>
 
+          <Text style={styles.sectionTitle}>Health & Personality</Text>
+          <View style={styles.specRow}>
+            <MaterialDesignIcons name="heart-pulse" size={20} color={COLORS.primary} />
+            <Text style={styles.specText}>{pet.healthStatus}</Text>
+          </View>
+          <View style={styles.specRow}>
+            <MaterialDesignIcons name="shield-check" size={20} color={COLORS.primary} />
+            <Text style={styles.specText}>{pet.vaccinationStatus}</Text>
+          </View>
+          {pet.personality && (
+            <View style={styles.specRow}>
+              <MaterialDesignIcons name="star" size={20} color={COLORS.primary} />
+              <Text style={styles.specText}>{pet.personality}</Text>
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>Shelter Information</Text>
+          <View style={styles.shelterCard}>
+            <Image source={{ uri: pet.shelter?.avatar || 'https://via.placeholder.com/150' }} style={styles.shelterImg} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.shelterName}>{pet.shelter?.clinicName || pet.shelter?.name}</Text>
+              <Text style={styles.shelterLocation}>{pet.location || 'Bhubaneswar, India'}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.callBtn}
+              onPress={() => pet.shelter?.phone && Linking.openURL(`tel:${pet.shelter.phone}`)}
+            >
+              <MaterialDesignIcons name="phone" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
         <Button 
-          title="Adopt Me" 
-          onPress={() => navigation.navigate('AdoptionApplication', { adoptionId: pet.id })}
+          title="Apply for Adoption" 
+          onPress={() => navigation.navigate('AdoptionApplication', { petId: pet.id, petName: pet.name })} 
+          style={styles.applyBtn}
+          textStyle={{ fontWeight: 'bold' }}
         />
       </View>
     </ScreenContainer>
@@ -93,148 +139,146 @@ export const AdoptionDetailsScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  loading: {
+  center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scrollContent: {
-    paddingBottom: SPACING.xxl,
-  },
-  imageContainer: {
+  headerImg: {
     width: '100%',
-    height: 350,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  headerControls: {
-    position: 'absolute',
-    top: 40,
-    left: SPACING.md,
-    right: SPACING.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  favBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.small,
-  },
-  contentContainer: {
-    flex: 1,
+    height: hp(45),
     backgroundColor: COLORS.background,
-    marginTop: -30,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
-    padding: SPACING.lg,
   },
-  titleRow: {
+  content: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -30,
+    padding: SPACING.xl,
+  },
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.xs,
+    alignItems: 'flex-start',
+    marginBottom: SPACING.lg,
   },
   name: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: 'Outfit-Bold',
     color: COLORS.text,
   },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  location: {
-    fontSize: 14,
+  breed: {
+    fontSize: 16,
     color: COLORS.textLight,
-    marginLeft: 4,
+    marginTop: 2,
   },
-  statsRow: {
+  genderBadge: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.lg,
-    marginBottom: SPACING.xl,
-    ...SHADOWS.small,
-  },
-  statBox: {
-    flex: 1,
     alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.md,
+    gap: 4,
   },
-  statLabel: {
+  genderText: {
     fontSize: 12,
+    fontWeight: 'bold',
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xl,
+  },
+  infoCard: {
+    width: '30%',
+    backgroundColor: COLORS.background,
+    padding: 12,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 10,
     color: COLORS.textLight,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
     marginBottom: 4,
   },
-  statValue: {
+  infoValue: {
     fontSize: 14,
     fontWeight: 'bold',
     color: COLORS.text,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit-Bold',
+    color: COLORS.text,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  description: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: COLORS.textLight,
+    marginBottom: SPACING.lg,
+  },
+  specRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  specText: {
+    fontSize: 15,
+    color: COLORS.text,
+    fontWeight: '500',
   },
   shelterCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: COLORS.background,
+    padding: 16,
+    borderRadius: RADIUS.xl,
+    gap: 12,
+    marginTop: SPACING.xs,
+  },
+  shelterImg: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: RADIUS.lg,
-    marginBottom: SPACING.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  shelterIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  shelterInfo: {
-    flex: 1,
   },
   shelterName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.text,
   },
-  shelterSub: {
-    fontSize: 12,
-    color: COLORS.primary,
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: SPACING.sm,
-  },
-  aboutText: {
-    fontSize: 15,
+  shelterLocation: {
+    fontSize: 13,
     color: COLORS.textLight,
-    lineHeight: 24,
+  },
+  callBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.small,
   },
   footer: {
-    padding: SPACING.md,
-    backgroundColor: COLORS.surface,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: SPACING.lg,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+  },
+  applyBtn: {
+    height: 54,
+    borderRadius: RADIUS.xl,
+    ...SHADOWS.medium,
   },
 });

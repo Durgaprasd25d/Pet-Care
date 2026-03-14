@@ -1,28 +1,40 @@
 import { create } from 'zustand';
-import { Adoption } from '../types';
 import { dataService } from '../services/dataService';
 
 interface AdoptionState {
-  adoptions: Adoption[];
+  adoptions: any[];
+  myRequests: any[];
   loading: boolean;
-  fetchAdoptions: () => Promise<void>;
-  applyForAdoption: (id: string, message: string, token: string) => Promise<void>;
+  fetchAdoptions: (params?: any) => Promise<void>;
+  fetchMyRequests: (token: string) => Promise<void>;
+  submitRequest: (requestData: any, token: string) => Promise<void>;
 }
 
 export const useAdoptionStore = create<AdoptionState>((set) => ({
   adoptions: [],
+  myRequests: [],
   loading: false,
-  fetchAdoptions: async () => {
+  fetchAdoptions: async (params = {}) => {
     set({ loading: true });
     try {
-      const adoptions = await dataService.getAdoptions();
+      const adoptions = await dataService.getAdoptions(params);
       set({ adoptions, loading: false });
     } catch (error) {
       console.error(error);
       set({ loading: false });
     }
   },
-  applyForAdoption: async (id, message, token) => {
-    await dataService.applyForAdoption(id, message, token);
+  fetchMyRequests: async (token: string) => {
+    set({ loading: true });
+    try {
+      const myRequests = await dataService.getMyAdoptionRequests(token);
+      set({ myRequests, loading: false });
+    } catch (error) {
+      console.error(error);
+      set({ loading: false });
+    }
+  },
+  submitRequest: async (requestData, token) => {
+    await dataService.submitAdoptionRequest(requestData, token);
   }
 }));

@@ -69,14 +69,15 @@ export const useCommunityStore = create<CommunityState>((set) => ({
     set((state) => {
       const user = useAppStore.getState().user;
       if (!user) return state;
+      const userId = user.id || (user as any)._id;
 
       return {
         posts: state.posts.map((p) => {
           if (p.id === postId) {
-            const isLiked = p.likedBy?.includes(user.id);
+            const isLiked = p.likedBy?.includes(userId);
             const newLikedBy = isLiked
-              ? (p.likedBy || []).filter(id => id !== user.id)
-              : [...(p.likedBy || []), user.id];
+              ? (p.likedBy || []).filter(id => id !== userId)
+              : [...(p.likedBy || []), userId];
             
             return {
               ...p,

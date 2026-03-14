@@ -41,6 +41,43 @@ export const dataService = {
     });
     return response.json();
   },
+  updateUserProfile: async (userData: any, token: string): Promise<User> => {
+    let body: any;
+    let headers: any = { 
+      'Authorization': `Bearer ${token}`
+    };
+
+    if (userData.avatar && typeof userData.avatar === 'object' && userData.avatar.uri) {
+      const formData = new FormData();
+      Object.keys(userData).forEach(key => {
+        if (key === 'avatar') {
+          formData.append('avatar', {
+            uri: userData.avatar.uri,
+            type: userData.avatar.type || 'image/jpeg',
+            name: userData.avatar.fileName || 'avatar.jpg',
+          } as any);
+        } else if (userData[key] !== undefined) {
+          formData.append(key, userData[key]);
+        }
+      });
+      body = formData;
+    } else {
+      body = JSON.stringify(userData);
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const response = await fetch(`${API_URL}/auth/profile`, {
+      method: 'PUT',
+      headers,
+      body
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update profile');
+    }
+    return response.json();
+  },
 
   // Pets
   getPets: async (token: string): Promise<Pet[]> => {
@@ -152,6 +189,12 @@ export const dataService = {
     const vet = await response.json();
     return { ...vet, id: vet._id };
   },
+  getNearbyVets: async (lat: number, lng: number): Promise<Vet[]> => {
+    const response = await fetch(`${API_URL}/vets/nearby?lat=${lat}&lng=${lng}`);
+    if (!response.ok) throw new Error('Failed to fetch nearby vets');
+    const vets = await response.json();
+    return vets.map((v: any) => ({ ...v, id: v._id }));
+  },
 
   // Appointments
   getAppointments: async (token: string): Promise<Appointment[]> => {
@@ -190,22 +233,48 @@ export const dataService = {
     });
   },
 
-  // Adoption (Phase 2)
-  getAdoptions: async (): Promise<Adoption[]> => {
-    const response = await fetch(`${API_URL}/adoptions`);
+  // Adoption
+  getAdoptions: async (params: any = {}): Promise<any[]> => {
+    let url = `${API_URL}/adoptions/pets`;
+    const queryParams = [];
+    if (params.type) queryParams.push(`type=${params.type}`);
+    if (params.breed) queryParams.push(`breed=${params.breed}`);
+    if (params.location) queryParams.push(`location=${params.location}`);
+    
+    if (queryParams.length > 0) {
+      url += `?${queryParams.join('&')}`;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch adoptions');
     const adoptions = await response.json();
     return adoptions.map((a: any) => ({ ...a, id: a._id }));
   },
-  applyForAdoption: async (id: string, message: string, token: string): Promise<any> => {
-    const response = await fetch(`${API_URL}/adoptions/${id}/apply`, {
+  getAdoptionPetById: async (id: string): Promise<any> => {
+    const response = await fetch(`${API_URL}/adoptions/pets/${id}`);
+    if (!response.ok) throw new Error('Pet not found');
+    const pet = await response.json();
+    return { ...pet, id: pet._id };
+  },
+  submitAdoptionRequest: async (requestData: any, token: string): Promise<any> => {
+    const response = await fetch(`${API_URL}/adoptions/requests`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ message })
+      body: JSON.stringify(requestData)
     });
+    if (!response.ok) throw new Error('Failed to submit application');
     return response.json();
+  },
+  getMyAdoptionRequests: async (token: string): Promise<any[]> => {
+    const response = await fetch(`${API_URL}/adoptions/requests`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Failed to fetch requests');
+    const requests = await response.json();
+    return requests.map((r: any) => ({ ...r, id: r._id }));
   },
 
   // Community (Phase 2)
@@ -269,6 +338,20 @@ export const dataService = {
     });
     return response.json();
   },
+  getPostComments: async (postId: string): Promise<any[]> => {
+    const response = await fetch(`${API_URL}/community/${postId}/comments`);
+    if (!response.ok) throw new Error('Failed to fetch comments');
+    const comments = await response.json();
+    return comments.map((c: any) => ({
+      ...c,
+      id: c._id,
+      user: {
+        id: c.user?._id || c.user?.id,
+        name: c.user?.name || 'Anonymous',
+        avatar: c.user?.avatar || 'https://via.placeholder.com/150'
+      }
+    }));
+  },
   likePost: async (postId: string, token: string): Promise<any> => {
     const response = await fetch(`${API_URL}/community/${postId}/like`, {
       method: 'POST',
@@ -293,22 +376,54 @@ export const dataService = {
     return response.json();
   },
 
-  // Lost & Found (Phase 2)
   getLostPets: async (type?: string): Promise<LostAndFound[]> => {
     const url = type ? `${API_URL}/lostpets?type=${type}` : `${API_URL}/lostpets`;
     const response = await fetch(url);
     const results = await response.json();
     return results.map((r: any) => ({ ...r, id: r._id }));
   },
+  getLostPetById: async (id: string): Promise<LostAndFound> => {
+    const response = await fetch(`${API_URL}/lostpets/${id}`);
+    if (!response.ok) throw new Error('Report not found');
+    const result = await response.json();
+    return { ...result, id: result._id };
+  },
   reportLostPet: async (reportData: any, token: string): Promise<LostAndFound> => {
+    let body: any;
+    let headers: any = { 
+      'Authorization': `Bearer ${token}`
+    };
+
+    if (reportData.image && typeof reportData.image === 'object') {
+      const formData = new FormData();
+      Object.keys(reportData).forEach(key => {
+        if (key === 'image') {
+          formData.append('image', {
+            uri: reportData.image.uri,
+            type: reportData.image.type || 'image/jpeg',
+            name: reportData.image.name || 'report.jpg',
+          } as any);
+        } else if (key === 'contactInfo') {
+          formData.append(key, JSON.stringify(reportData[key]));
+        } else {
+          formData.append(key, reportData[key]);
+        }
+      });
+      body = formData;
+    } else {
+      body = JSON.stringify(reportData);
+      headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(`${API_URL}/lostpets`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(reportData)
+      headers,
+      body
     });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to submit report');
+    }
     return response.json();
   },
 

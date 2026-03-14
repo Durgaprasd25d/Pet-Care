@@ -1,16 +1,33 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 const {
-  createAdoption,
-  getAdoptions,
-  applyForAdoption,
-  updateAdoptionStatus,
+  createAdoptionPet,
+  getAdoptionPets,
+  getAdoptionPetById,
+  submitAdoptionRequest,
+  getAdoptionRequests,
+  updateRequestStatus,
+  getShelterPets,
 } = require("../controllers/adoptionController");
 const { protect } = require("../middleware/authMiddleware");
 
-router.route("/").get(getAdoptions).post(protect, createAdoption);
+// Pet listings
+router
+  .route("/pets")
+  .get(getAdoptionPets)
+  .post(protect, upload.single("image"), createAdoptionPet);
+router.get("/pets/:id", getAdoptionPetById);
+router.get("/shelter/pets", protect, getShelterPets);
 
-router.post("/:id/apply", protect, applyForAdoption);
-router.put("/:id", protect, updateAdoptionStatus);
+// Adoption requests
+router
+  .route("/requests")
+  .get(protect, getAdoptionRequests)
+  .post(protect, submitAdoptionRequest);
+router.put("/requests/:id", protect, updateRequestStatus);
 
 module.exports = router;

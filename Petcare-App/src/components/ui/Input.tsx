@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: COLORS.surface,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     borderRadius: RADIUS.lg,
     paddingHorizontal: SPACING.md,
-    height: 56,
+    minHeight: 56,
   },
   inputFocused: {
     borderColor: COLORS.primary,
@@ -120,14 +120,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: COLORS.text,
-    paddingVertical: SPACING.sm,
-    height: '100%',
+    paddingVertical: SPACING.md,
+    minHeight: 48,
   },
   leftIcon: {
     marginRight: SPACING.sm,
+    marginTop: SPACING.md,
   },
   rightIcon: {
     marginLeft: SPACING.sm,
+    marginTop: SPACING.md,
   },
   errorText: {
     fontSize: 12,

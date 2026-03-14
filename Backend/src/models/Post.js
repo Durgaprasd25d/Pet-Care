@@ -22,10 +22,14 @@ const postSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Pet",
     },
+    lostPetId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LostPet",
+    },
     location: String,
     category: {
       type: String,
-      enum: ["general", "health", "training", "stories"],
+      enum: ["general", "health", "training", "stories", "lost_found"],
       default: "general",
     },
     commentCount: {

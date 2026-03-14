@@ -1,10 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Share } from 'react-native';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../theme/theme';
+import { useAppStore } from '../../store/useAppStore';
 import { Post } from '../../types';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
 import { Avatar } from '../ui/Avatar';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withSequence,
+  withTiming,
+  interpolate,
+  Extrapolate,
+  FadeInDown,
+  runOnJS
+} from 'react-native-reanimated';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface PostCardProps {
   post: Post;
@@ -27,7 +39,45 @@ export const PostCard: React.FC<PostCardProps> = ({
   index = 0,
   currentUserId
 }) => {
-  const isLiked = currentUserId && post.likedBy?.includes(currentUserId);
+  const user = useAppStore(state => state.user);
+  const userId = currentUserId || user?.id || (user as any)?._id;
+  const isLiked = userId && post.likedBy?.includes(userId);
+  
+  const scale = useSharedValue(1);
+  const pulseScale = useSharedValue(1);
+  const pulseOpacity = useSharedValue(0);
+
+  const animatedHeartStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const animatedPulseStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: pulseScale.value }],
+      opacity: pulseOpacity.value,
+      position: 'absolute',
+      zIndex: -1,
+    };
+  });
+
+  const handleLike = () => {
+    scale.value = withSequence(
+      withSpring(1.5, { damping: 4, stiffness: 150 }),
+      withSpring(1, { damping: 10, stiffness: 100 })
+    );
+
+    if (!isLiked) {
+      pulseScale.value = 1;
+      pulseOpacity.value = 0.5;
+      pulseScale.value = withTiming(2.5, { duration: 400 });
+      pulseOpacity.value = withTiming(0, { duration: 400 });
+    }
+
+    onLikePress?.();
+  };
+
   return (
     <Animated.View 
       entering={FadeInDown.delay(index * 100).duration(600)}
@@ -53,27 +103,49 @@ export const PostCard: React.FC<PostCardProps> = ({
       </View>
       
       <TouchableOpacity onPress={onPress} activeOpacity={0.9} disabled={!onPress}>
-        {post.petId && (
+        {post.category === 'lost_found' ? (
+          <View style={[styles.tagBadge, { backgroundColor: COLORS.error + '15' }]}>
+            <MaterialDesignIcons name="alert-decagram" size={12} color={COLORS.error} />
+            <Text style={[styles.tagText, { color: COLORS.error }]}>Lost/Found Alert</Text>
+          </View>
+        ) : post.petId ? (
           <View style={styles.tagBadge}>
             <MaterialDesignIcons name="paw" size={12} color={COLORS.primary} />
             <Text style={styles.tagText}>Tagged Pet</Text>
           </View>
-        )}
+        ) : null}
         <Text style={styles.content}>{post.content}</Text>
         
         {post.image ? (
           <Image source={{ uri: post.image }} style={styles.image} resizeMode="cover" />
         ) : null}
+
+        {post.category === 'lost_found' && post.lostPetId && (
+          <TouchableOpacity 
+            style={styles.viewReportBtn}
+            onPress={onPress}
+          >
+            <Text style={styles.viewReportText}>View Full Report Details</Text>
+            <MaterialDesignIcons name="chevron-right" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
       
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={onLikePress}>
-          <MaterialDesignIcons 
-            name={isLiked ? "heart" : "heart-outline"} 
-            size={22} 
-            color={isLiked ? COLORS.accent : COLORS.text} 
-          />
-          <Text style={[styles.actionText, isLiked && { color: COLORS.accent }]}>{post.likes || 0}</Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleLike} activeOpacity={0.8}>
+          <Animated.View style={animatedHeartStyle}>
+            {isLiked ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <Animated.View style={animatedPulseStyle}>
+                  <View style={[styles.gradientHeart, { backgroundColor: '#FF3B30', opacity: 0.3 }]} />
+                </Animated.View>
+                <MaterialDesignIcons name="heart" size={24} color="#FF3B30" />
+              </View>
+            ) : (
+              <MaterialDesignIcons name="heart-outline" size={24} color={COLORS.text} />
+            )}
+          </Animated.View>
+          <Text style={[styles.actionText, isLiked && { color: '#FF3B30' }]}>{post.likes || 0}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.actionBtn} onPress={onCommentPress}>
@@ -164,6 +236,13 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginLeft: 6,
   },
+  gradientHeart: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   timeLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -192,5 +271,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.primary,
     marginLeft: 4,
+  },
+  viewReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary + '10',
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  viewReportText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginRight: 4,
   },
 });

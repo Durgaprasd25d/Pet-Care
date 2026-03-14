@@ -39,7 +39,7 @@ const LostFoundManagement = () => {
         </div>
         <div className="flex gap-4">
           <div className="bg-amber-50 px-4 py-2 rounded-lg border border-amber-100 text-sm font-semibold text-amber-600">
-            Open Reports: {reports.filter(r => r.status !== 'Resolved').length}
+            Open Reports: {reports.filter(r => r.status !== 'resolved').length}
           </div>
         </div>
       </div>
@@ -60,7 +60,7 @@ const LostFoundManagement = () => {
               {loading ? (
                 <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-400">Loading reports...</td></tr>
               ) : reports.map((report) => (
-                <tr key={report._id} className={`${report.status === 'Resolved' ? 'bg-slate-50/50 grayscale' : ''} hover:bg-slate-50 transition-colors`}>
+                <tr key={report._id} className={`${report.status === 'resolved' ? 'bg-slate-50/50 grayscale' : ''} hover:bg-slate-50 transition-colors`}>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -78,29 +78,29 @@ const LostFoundManagement = () => {
                   <td className="px-6 py-4 text-sm">
                     <div className="flex items-center gap-1.5 text-slate-700">
                       <MapPin size={14} className="text-slate-400" />
-                      {report.location}
+                      {report.lastSeenLocation}
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-400 text-xs mt-1">
                       <Clock size={12} />
-                      {new Date(report.date).toLocaleDateString()}
+                      {new Date(report.lastSeenDate).toLocaleDateString()}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-xs text-slate-600">
                       <Phone size={12} className="text-slate-400" />
-                      {report.contact}
+                      {report.contactInfo?.phone || 'No Phone'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${report.status === 'Resolved' ? 'bg-slate-200 text-slate-500' : report.type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${report.status === 'resolved' ? 'bg-slate-200 text-slate-500' : report.type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                       {report.status || report.type}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {report.status !== 'Resolved' && (
+                    {report.status !== 'resolved' && (
                       <div className="flex justify-end gap-2">
                         <button 
-                          onClick={() => handleStatusUpdate(report._id, 'Resolved')}
+                          onClick={() => handleStatusUpdate(report._id, 'resolved')}
                           className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors" 
                           title="Mark as Resolved"
                         >

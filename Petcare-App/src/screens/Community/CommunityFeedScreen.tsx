@@ -5,6 +5,7 @@ import { Header } from '../../components/layout/Header';
 import { PostCard } from '../../components/cards/PostCard';
 import { SPACING, COLORS, SHADOWS, RADIUS } from '../../theme/theme';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
+import { CommentBottomSheet } from '../../components/ui/CommentBottomSheet';
 
 import { useCommunityStore } from '../../store/useCommunityStore';
 import { useAppStore } from '../../store/useAppStore';
@@ -12,6 +13,8 @@ import { useAppStore } from '../../store/useAppStore';
 export const CommunityFeedScreen = ({ navigation }: any) => {
   const { token, user } = useAppStore();
   const { posts, loading, fetchPosts, likePost } = useCommunityStore();
+  const [showComments, setShowComments] = React.useState(false);
+  const [activePostId, setActivePostId] = React.useState<string | null>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -62,10 +65,21 @@ export const CommunityFeedScreen = ({ navigation }: any) => {
             post={post} 
             index={index}
             currentUserId={user?.id}
-            onPress={() => navigation.navigate('PostDetails', { postId: post.id })} 
-            onUserPress={() => navigation.navigate('UserCommunityProfile', { userId: post.userId })}
+            onPress={() => {
+              if (post.category === 'lost_found' && post.lostPetId) {
+                // Determine if it was lost or found from content or post category
+                const isLost = post.content.includes('LOST');
+                navigation.navigate(isLost ? 'LostPetDetails' : 'FoundPetDetails', { itemId: post.lostPetId });
+              } else {
+                navigation.navigate('PostDetails', { postId: post.id });
+              }
+            }}
+            onUserPress={() => navigation.navigate('UserCommunityProfile', { userId: post.user?.id || (post as any).userId })}
             onLikePress={() => token && likePost(post.id, token)}
-            onCommentPress={() => navigation.navigate('PostDetails', { postId: post.id })}
+            onCommentPress={() => {
+              setActivePostId(post.id);
+              setShowComments(true);
+            }}
           />
         ))}
       </ScrollView>
@@ -77,6 +91,12 @@ export const CommunityFeedScreen = ({ navigation }: any) => {
       >
         <MaterialDesignIcons name="pencil" size={28} color={COLORS.surface} />
       </TouchableOpacity>
+
+      <CommentBottomSheet 
+        visible={showComments} 
+        onClose={() => setShowComments(false)} 
+        postId={activePostId} 
+      />
     </ScreenContainer>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { Header } from '../../components/layout/Header';
 import { Avatar } from '../../components/ui/Avatar';
@@ -7,26 +8,54 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../theme/theme';
 import { useAppStore } from '../../store/useAppStore';
+import { dataService } from '../../services/dataService';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
 import LinearGradient from 'react-native-linear-gradient';
 
 export const EditProfileScreen = ({ navigation }: any) => {
-  const { user, setUser } = useAppStore();
+  const { user, setUser, token } = useAppStore();
   
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [location, setLocation] = useState(user?.location || '');
+  const [avatar, setAvatar] = useState<any>(user?.avatar ? { uri: user.avatar } : null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    if (user) {
-      setUser({
-        ...user,
+  const handlePickImage = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+    });
+
+    if (result.assets && result.assets[0]) {
+      setAvatar(result.assets[0]);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user || !token) return;
+
+    setLoading(true);
+    try {
+      const updateData: any = {
         name,
         phone,
-        location
-      });
+        location,
+      };
+
+      if (avatar && avatar.uri && avatar.uri !== user.avatar) {
+        updateData.avatar = avatar;
+      }
+
+      const updatedUser = await dataService.updateUserProfile(updateData, token);
+      setUser(updatedUser);
+      Alert.alert('Success', 'Profile updated successfully!');
+      navigation.goBack();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
     }
-    navigation.goBack();
   };
 
   return (
@@ -43,13 +72,13 @@ export const EditProfileScreen = ({ navigation }: any) => {
         />
         
         <View style={styles.avatarSection}>
-          <View style={styles.avatarWrapper}>
-            <Avatar source={user?.avatar ? { uri: user.avatar } : undefined} size={110} />
-            <TouchableOpacity style={styles.cameraButton}>
+          <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickImage}>
+            <Avatar source={avatar?.uri ? { uri: avatar.uri } : (typeof avatar === 'number' ? avatar : undefined)} size={110} />
+            <TouchableOpacity style={styles.cameraButton} onPress={handlePickImage}>
               <MaterialDesignIcons name="camera" size={20} color="#fff" />
             </TouchableOpacity>
-          </View>
-          <Text style={styles.infoText}>Tap camera to update photo</Text>
+          </TouchableOpacity>
+          <Text style={styles.infoText}>Tap to update photo</Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -83,6 +112,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
             title="Save Changes" 
             onPress={handleSave} 
             style={styles.saveButton}
+            loading={loading}
           />
         </View>
       </ScrollView>

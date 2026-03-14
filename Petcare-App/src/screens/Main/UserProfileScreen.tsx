@@ -10,9 +10,10 @@ import {
   Platform,
   ImageBackground
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { Header } from '../../components/layout/Header';
 import { Avatar } from '../../components/ui/Avatar';
+import { dataService } from '../../services/dataService';
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS, SPACING, RADIUS, SHADOWS, SIZES } from '../../theme/theme';
 import { useAppStore } from '../../store/useAppStore';
@@ -21,11 +22,35 @@ import { useAppointmentStore } from '../../store/useAppointmentStore';
 import { MaterialDesignIcons } from '@react-native-vector-icons/material-design-icons';
 
 export const UserProfileScreen = ({ navigation }: any) => {
-  const { user, logout, theme, setTheme } = useAppStore();
+  const { user, logout, theme, setTheme, setUser, token } = useAppStore();
   const { pets } = usePetStore();
   const { appointments } = useAppointmentStore();
 
   const [isPushEnabled, setIsPushEnabled] = useState(true);
+  const [updatingAvatar, setUpdatingAvatar] = useState(false);
+
+  const handleUpdateAvatar = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+    });
+
+    if (result.assets && result.assets[0] && user && token) {
+      setUpdatingAvatar(true);
+      try {
+        const updatedUser = await dataService.updateUserProfile(
+          { avatar: result.assets[0] },
+          token
+        );
+        setUser(updatedUser);
+        Alert.alert('Success', 'Profile picture updated!');
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to update avatar');
+      } finally {
+        setUpdatingAvatar(false);
+      }
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -98,7 +123,7 @@ export const UserProfileScreen = ({ navigation }: any) => {
                     source={user?.avatar ? { uri: user.avatar } : undefined}
                     size={100}
                   />
-                  <TouchableOpacity style={styles.cameraBtn}>
+                  <TouchableOpacity style={styles.cameraBtn} onPress={handleUpdateAvatar}>
                     <MaterialDesignIcons name="camera" size={18} color="#fff" />
                   </TouchableOpacity>
                 </View>
@@ -114,8 +139,6 @@ export const UserProfileScreen = ({ navigation }: any) => {
           {renderStat(pets.length, 'Pets', 'paw', '#6366f1')}
           <View style={styles.statDivider} />
           {renderStat(appointments.filter(a => a.status === 'scheduled').length, 'Visits', 'calendar-check', '#f59e0b')}
-          <View style={styles.statDivider} />
-          {renderStat('Gold', 'Status', 'crown', '#8b5cf6')}
         </View>
 
         <View style={styles.mainContent}>
@@ -156,7 +179,7 @@ export const UserProfileScreen = ({ navigation }: any) => {
             <View style={styles.card}>
               {renderMenuItem('account-outline', 'Personal Information', () => navigation.navigate('EditProfile'), COLORS.primary)}
               <View style={styles.divider} />
-              {renderMenuItem(
+              {/* {renderMenuItem(
                 'bell-outline',
                 'Push Notifications',
                 () => { },
@@ -168,12 +191,12 @@ export const UserProfileScreen = ({ navigation }: any) => {
                   thumbColor={Platform.OS === 'ios' ? '#fff' : (isPushEnabled ? '#fff' : '#f4f3f4')}
                 />
               )}
-              <View style={styles.divider} />
+              <View style={styles.divider} /> */}
               {renderMenuItem('shield-lock-outline', 'Privacy & Security', () => navigation.navigate('PrivacySecurity'), '#10b981')}
               <View style={styles.divider} />
               {renderMenuItem('package-variant-closed', 'My Orders', () => navigation.navigate('StoreTab', { screen: 'MyOrders' }), '#f43f5e')}
-              <View style={styles.divider} />
-              {renderMenuItem('wallet-outline', 'Payments & Subscriptions', () => { }, '#3b82f6')}
+              {/* <View style={styles.divider} />
+              {renderMenuItem('wallet-outline', 'Payments & Subscriptions', () => { }, '#3b82f6')} */}
             </View>
           </View>
 
@@ -183,8 +206,8 @@ export const UserProfileScreen = ({ navigation }: any) => {
             <View style={styles.card}>
               {renderMenuItem('help-circle-outline', 'Help Center', () => navigation.navigate('HelpSupport'), '#8b5cf6')}
               <View style={styles.divider} />
-              {renderMenuItem('star-outline', 'Rate the App', () => { }, '#f59e0b')}
-              <View style={styles.divider} />
+              {/* {renderMenuItem('star-outline', 'Rate the App', () => { }, '#f59e0b')}
+              <View style={styles.divider} /> */}
               {renderMenuItem('information-outline', 'About PetCare', () => navigation.navigate('AboutApp'), COLORS.textLight)}
             </View>
           </View>

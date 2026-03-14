@@ -1,94 +1,104 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { Header } from '../../components/layout/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { COLORS, SPACING, RADIUS, SHADOWS } from '../../theme/theme';
+import { COLORS, SPACING, RADIUS } from '../../theme/theme';
 import { useAdoptionStore } from '../../store/useAdoptionStore';
 import { useAppStore } from '../../store/useAppStore';
 
-
 export const AdoptionApplicationScreen = ({ route, navigation }: any) => {
-  const { adoptionId } = route.params;
-  const { applyForAdoption } = useAdoptionStore();
-  const { token } = useAppStore();
-
-  const [experience, setExperience] = useState('');
-  const [homeType, setHomeType] = useState('');
-  const [otherPets, setOtherPets] = useState('');
+  const { petId, petName } = route.params;
+  const { submitRequest } = useAdoptionStore();
+  const { user, token } = useAppStore();
   const [loading, setLoading] = useState(false);
 
+  const [formData, setFormData] = useState({
+    fullName: user?.name || '',
+    phone: '',
+    address: '',
+    experience: '',
+    reason: '',
+  });
+
   const handleSubmit = async () => {
-    if (!token) return;
+    if (!formData.phone || !formData.address || !formData.experience || !formData.reason) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
     setLoading(true);
     try {
-      const message = `Experience: ${experience}\nHome Type: ${homeType}\nOther Pets: ${otherPets}`;
-      await applyForAdoption(adoptionId, message, token);
-      navigation.navigate('ApplicationSuccess');
+      await submitRequest({ petId, ...formData }, token!);
+      navigation.navigate('ApplicationSuccess', { petName });
     } catch (error) {
-      console.error(error);
+       Alert.alert('Error', 'Failed to submit application. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
     <ScreenContainer>
       <Header title="Adoption Application" onBackPress={() => navigation.goBack()} />
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Before you apply</Text>
-          <Text style={styles.infoText}>
-            Adopting a pet is a long-term commitment. Please ensure you have the time, resources, and dedication to provide a loving forever home.
-          </Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.petInfoCard}>
+            <Text style={styles.petName}>Applying for: {petName}</Text>
+            <Text style={styles.petHint}>Please provide accurate information to help the shelter review your request.</Text>
+          </View>
 
-        <Text style={styles.sectionTitle}>Pet Experience</Text>
-        <Input 
-          label="Have you owned a pet before?" 
-          placeholder="Yes/No, please describe briefly..." 
-          value={experience} 
-          onChangeText={setExperience} 
-          multiline
-          numberOfLines={3}
-          style={styles.textArea}
-        />
+          <Input 
+            label="Full Name" 
+            placeholder="Your full name" 
+            value={formData.fullName} 
+            onChangeText={(v) => setFormData({...formData, fullName: v})}
+          />
+          <Input 
+            label="Phone Number" 
+            placeholder="Mobile number" 
+            keyboardType="phone-pad"
+            value={formData.phone} 
+            onChangeText={(v) => setFormData({...formData, phone: v})}
+          />
+          <Input 
+            label="Home Address" 
+            placeholder="Complete address" 
+            multiline
+            numberOfLines={3}
+            value={formData.address} 
+            onChangeText={(v) => setFormData({...formData, address: v})}
+          />
+          <Input 
+            label="Pet Experience" 
+            placeholder="Have you had pets before? Tell us briefly." 
+            multiline
+            numberOfLines={4}
+            value={formData.experience} 
+            onChangeText={(v) => setFormData({...formData, experience: v})}
+          />
+          <Input 
+            label="Why do you want to adopt?" 
+            placeholder="Your reason for adoption" 
+            multiline
+            numberOfLines={4}
+            value={formData.reason} 
+            onChangeText={(v) => setFormData({...formData, reason: v})}
+          />
 
-        <Text style={styles.sectionTitle}>Living Situation</Text>
-        <Input 
-          label="Type of Home" 
-          placeholder="House, Apartment, Condo, etc." 
-          value={homeType} 
-          onChangeText={setHomeType} 
-        />
-
-        <Text style={styles.sectionTitle}>Other Pets</Text>
-        <Input 
-          label="Do you have other pets currently?" 
-          placeholder="Describe any current pets..." 
-          value={otherPets} 
-          onChangeText={setOtherPets} 
-          multiline
-          numberOfLines={3}
-          style={styles.textArea}
-        />
-
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <Button 
-          title="Submit Application" 
-          onPress={handleSubmit} 
-          disabled={!experience || !homeType || loading}
-          loading={loading}
-        />
-      </View>
+          <Button 
+            title="Submit Application" 
+            onPress={handleSubmit} 
+            loading={loading}
+            style={styles.submitBtn}
+          />
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 };
@@ -96,42 +106,27 @@ export const AdoptionApplicationScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   scrollContent: {
     padding: SPACING.md,
-    paddingBottom: SPACING.xl,
   },
-  infoCard: {
-    backgroundColor: COLORS.primary + '15',
+  petInfoCard: {
+    backgroundColor: COLORS.primary + '10',
     padding: SPACING.lg,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.primary + '30',
     marginBottom: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '20',
   },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: SPACING.xs,
-  },
-  infoText: {
-    fontSize: 14,
-    color: COLORS.text,
-    lineHeight: 22,
-  },
-  sectionTitle: {
+  petName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.sm,
+    color: COLORS.primary,
+    marginBottom: 4,
   },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
+  petHint: {
+    fontSize: 13,
+    color: COLORS.textLight,
   },
-  footer: {
-    padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+  submitBtn: {
+    marginTop: SPACING.lg,
+    borderRadius: RADIUS.lg,
   },
 });

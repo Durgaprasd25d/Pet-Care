@@ -8,7 +8,13 @@ const {
 } = require("../controllers/lostPetController");
 const { protect } = require("../middleware/authMiddleware");
 
-router.route("/").get(getLostPets).post(protect, reportLostPet);
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
+
+router
+  .route("/")
+  .get(getLostPets)
+  .post(protect, upload.single("image"), reportLostPet);
 
 router.route("/:id").get(getLostPetById).put(protect, updateLostPetStatus);
 
